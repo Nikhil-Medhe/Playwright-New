@@ -1,0 +1,25 @@
+{
+  "name": "playwright-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node scripts/run-tests-with-id.js",
+    "test:slow": "node scripts/run-slow.js",
+    "test:ui": "node scripts/run-tests-with-id.js --ui",
+    "test:headed": "node scripts/run-tests-with-id.js --headed",
+    "codegen": "playwright codegen",
+    "codegen:headed": "playwright codegen --headed",
+    "codegen:email-page": "playwright codegen https://nikhil.cn-qam-pub.catnav.us/ --ignore-https-errors --target=playwright-test -o tests/EmailThisPage-New-recorded.spec.ts",
+    "codegen:email-page:item": "playwright codegen https://nikhil.cn-qam-pub.catnav.us/item/engine-parts/brake-system/item-1 --ignore-https-errors --target=playwright-test -o tests/EmailThisPage-New-recorded.spec.ts",
+    "codegen:order-submit": "playwright codegen https://nikhil.cn-qam-pub.catnav.us/ --ignore-https-errors --target=playwright-test -o tests/OrderSubmission-recorded.spec.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.1",
+    "@types/node": "^25.2.0"
+  }
+}

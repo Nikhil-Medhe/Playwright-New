@@ -1,0 +1,13 @@
+.env
+.env.local
+*.local
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/playwright-reports/
+/report-downloads/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
