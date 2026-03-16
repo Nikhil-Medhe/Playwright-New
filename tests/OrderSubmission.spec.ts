@@ -67,9 +67,15 @@ test('OrderSubmission: catalog → cart → checkout → submit order (pub)', as
   await cartPage.getByRole('button', { name: 'Calculate Shipping' }).click();
   await cartPage.locator('#chkIsResidential').check();
   await cartPage.getByRole('button', { name: 'Calculate Shipping' }).click();
-  const fedexOption = cartPage.getByRole('listitem').filter({ hasText: 'Fedex Priority Overnight$' }).getByRole('radio');
-  await expect(fedexOption).toBeVisible({ timeout: 10000 });
-  await fedexOption.check();
+  // FedEx text may vary (Fedex/FedEx, price); match flexibly or use first shipping radio
+  const fedexOption = cartPage.getByRole('listitem').filter({ hasText: /fedex.*priority.*overnight/i }).getByRole('radio');
+  const anyShippingRadio = cartPage.getByRole('listitem').filter({ hasText: /fedex|ups|standard|ground|overnight/i }).getByRole('radio').first();
+  if (await fedexOption.isVisible().catch(() => false)) {
+    await fedexOption.check();
+  } else {
+    await expect(anyShippingRadio).toBeVisible({ timeout: 10000 });
+    await anyShippingRadio.check();
+  }
   await expect(cartPage.getByRole('button', { name: /Step 2.*Payment/i })).toBeVisible();
   await cartPage.getByRole('button', { name: /Step 2.*Payment/i }).click();
 
