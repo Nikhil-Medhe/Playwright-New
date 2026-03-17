@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node scripts/run-tests-with-id.js",
+    "test:order": "npx playwright test tests/OrderSubmission.spec.ts",
     "test:slow": "node scripts/run-slow.js",
     "test:ui": "node scripts/run-tests-with-id.js --ui",
     "test:headed": "node scripts/run-tests-with-id.js --headed",

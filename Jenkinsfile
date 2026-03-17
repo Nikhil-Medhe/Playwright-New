@@ -3,12 +3,13 @@ pipeline {
 
   parameters {
     choice(
-      name: 'TEST_FILE',
+      name: 'TEST_SUITE',
       choices: [
-        'tests/OrderSubmission.spec.ts',
-        'tests/cadSiteVersion.spec.ts'
+        'OrderSubmission',
+        'cadSiteVersion',
+        'all'
       ],
-      description: 'Select Playwright test file to run'
+      description: 'Run only OrderSubmission, only cadSiteVersion, or all tests'
     )
   }
 
@@ -37,9 +38,17 @@ pipeline {
       }
     }
 
-    stage('Run Selected Test') {
+    stage('Run tests') {
       steps {
-        bat "npx playwright test ${params.TEST_FILE}"
+        script {
+          if (params.TEST_SUITE == 'OrderSubmission') {
+            bat 'npm run test:order'
+          } else if (params.TEST_SUITE == 'cadSiteVersion') {
+            bat 'npx playwright test tests/cadSiteVersion.spec.ts'
+          } else {
+            bat 'npm run test'
+          }
+        }
       }
     }
 
