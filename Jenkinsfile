@@ -38,6 +38,14 @@ pipeline {
       }
     }
 
+    stage('Clean old reports') {
+      steps {
+        bat 'if exist playwright-reports rmdir /s /q playwright-reports'
+        bat 'if exist playwright-report rmdir /s /q playwright-report'
+        bat 'if exist test-results rmdir /s /q test-results'
+      }
+    }
+
     stage('Run tests') {
       steps {
         script {
