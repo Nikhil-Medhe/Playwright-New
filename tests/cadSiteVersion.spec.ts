@@ -18,27 +18,36 @@ test('Cad Site Version flow', async ({ loggedInWebsiteManagerPage }) => {
   const catalogPage = await catalogPopupPromise;
   await expect(catalogPage).toHaveURL(/nikhil\.cn-qam-stage\.catnav\.us/);
 
-  // Browse categories and add an item to the cart
-  const cartPage = new CartPage(catalogPage);
-  await cartPage.addEngineBrakeItemToCart();
+  // Browse categories and add an item to the cart (dialog मधून View Cart — id="edit-attr-view-cart")
+  const cartPageObj = new CartPage(catalogPage);
+  await cartPageObj.addEngineBrakeItemToCart();
 
-  // Validate cart has the Engine parts / Brake system item
-  await expect(catalogPage.getByText('Shopping Cart')).toBeVisible();
-  //await expect(catalogPage.getByText(/Brake system/i)).toBeVisible();
-  // BEST - semantic आणि specific
-//await expect(catalogPage.getByRole('link', { name: 'Brake system' })).toBeVisible();
-
-  // Go directly to cart URL 
-  await catalogPage.goto(
-    'https://cart.cn-qam-stage.catnav.us/cbcheckout/viewcart?token=eEHvNOMf5uvlBoGxVZLF8jcOCgnwDCMIlNLkm4BCPG7qP8gl1sOcCERhyHXcyu5zXZ3LXgBxiHp28F6Rd5KWVQ%2C%2C&returnurl=http%3A%2F%2Fnikhil.cn-qam-stage.catnav.us%2Fviewitems%2Fengine-parts%2Fbrake-system',
-    {
-      waitUntil: 'domcontentloaded',
-      timeout: 120000,
+  const CART_URL = /viewcart|cart\.cn-qam|cbcheckout/i;
+  let cartPage = catalogPage;
+  for (let i = 0; i < 12; i++) {
+    await catalogPage.waitForTimeout(500);
+    if (CART_URL.test(catalogPage.url())) {
+      cartPage = catalogPage;
+      break;
     }
-  );
+    const tab = page.context().pages().find((p) => p !== page && CART_URL.test(p.url()));
+    if (tab) {
+      cartPage = tab;
+      break;
+    }
+    if (i === 11) {
+      const link = catalogPage.getByRole('link', { name: /shopping cart/i });
+      const href = await link.getAttribute('href').catch(() => null);
+      if (href) await catalogPage.goto(href, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+      else await link.first().click({ force: true });
+      cartPage = catalogPage;
+    }
+  }
+  await cartPage.bringToFront();
+  await expect(cartPage).toHaveURL(CART_URL, { timeout: 10_000 });
 
-  // Estimate shipping, fill address, and confirm shipping/payment
-  await cartPage.estimateShippingAndProceed('10001');
-  await cartPage.fillBasicShippingAddress();
-  await cartPage.goToPaymentAndConfirmShipping();
+  const cartPageModel = new CartPage(cartPage);
+  await cartPageModel.estimateShippingAndProceed('10001');
+  await cartPageModel.fillBasicShippingAddress();
+  await cartPageModel.goToPaymentAndConfirmShipping();
 });

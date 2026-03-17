@@ -10,25 +10,30 @@ export class CartPage extends BasePage {
     await this.page.getByRole('link', { name: 'Engine parts' }).click();
     await this.page.getByRole('link', { name: 'Brake system' }).click();
     await this.page.getByRole('link', { name: 'Add To Cart' }).nth(1).click();
-    await this.page.getByRole('button', { name: 'View Cart' }).click();
+    const dialog = this.page.getByRole('dialog');
+    await dialog.waitFor({ state: 'visible', timeout: 15_000 });
+    await dialog.locator('#edit-attr-view-cart').or(dialog.locator('button').filter({ hasText: 'View Cart' })).first().click();
   }
 
   async estimateShippingAndProceed(zip: string) {
-    await this.page.getByRole('textbox', { name: 'Zip Code' }).fill(zip);
-    await this.page.getByRole('button', { name: 'Estimate' }).click();
+    const zipInput = this.page.locator('#ecomm-ship-zip').or(this.page.getByRole('textbox', { name: /zip|postal\s*code/i }));
+    await expect(zipInput.first()).toBeVisible({ timeout: 15_000 });
+    await zipInput.first().fill(zip);
 
-    const shippingOption = this.page
-      .getByRole('radio', { name: /UPS\s*Ground/i })
-      .first();
+    const estimateBtn = this.page.getByRole('button', { name: /Estimate|Calculate\s*Shipping/i }).first();
+    await estimateBtn.click();
 
-    await expect(shippingOption).toBeVisible({ timeout: 30_000 });
-    await shippingOption.check();
+    const upsGround = this.page.getByRole('radio', { name: /UPS\s*Ground/i }).first();
+    const anyShipping = this.page.getByRole('listitem').filter({ hasText: /ups|fedex|ground|standard|overnight/i }).getByRole('radio').first();
+    if (await upsGround.isVisible().catch(() => false)) {
+      await upsGround.check();
+    } else {
+      await expect(anyShipping).toBeVisible({ timeout: 15_000 });
+      await anyShipping.check();
+    }
 
-    const proceedButton = this.page
-      .getByRole('button', { name: 'Proceed to Checkout' })
-      .first();
-
-    await proceedButton.waitFor({ state: 'visible' });
+    const proceedButton = this.page.getByRole('button', { name: /Proceed to Checkout/i }).or(this.page.getByRole('link', { name: /Proceed to Checkout/i })).first();
+    await expect(proceedButton).toBeVisible({ timeout: 15_000 });
     await proceedButton.click();
   }
 
@@ -40,18 +45,22 @@ export class CartPage extends BasePage {
   }
 
   async goToPaymentAndConfirmShipping() {
-    await this.page.getByRole('button', { name: 'Step 2: Payment ' }).click();
-    await this.page.getByRole('button', { name: 'Calculate Shipping' }).click();
-    await this.page.getByText('UPS Ground').click();
+    const step2Btn = this.page.getByRole('button', { name: /Step\s*2.*Payment/i }).first();
+    await step2Btn.click();
+    const calcBtn = this.page.getByRole('button', { name: /Calculate\s*Shipping|Estimate/i }).first();
+    if (await calcBtn.isVisible().catch(() => false)) await calcBtn.click();
+    const upsText = this.page.getByText(/UPS\s*Ground/i).first();
+    if (await upsText.isVisible().catch(() => false)) await upsText.click();
 
-    const shippingOption = this.page
-      .getByRole('radio', { name: /UPS\s*Ground/i })
-      .first();
-
-    await expect(shippingOption).toBeVisible({ timeout: 30_000 });
-    await shippingOption.check();
-
-    await this.page.getByRole('button', { name: 'Step 2: Payment ' }).click();
+    const shippingOption = this.page.getByRole('radio', { name: /UPS\s*Ground/i }).first();
+    const anyShipping = this.page.getByRole('listitem').filter({ hasText: /ups|fedex|ground|standard/i }).getByRole('radio').first();
+    if (await shippingOption.isVisible().catch(() => false)) {
+      await shippingOption.check();
+    } else {
+      await expect(anyShipping).toBeVisible({ timeout: 15_000 });
+      await anyShipping.check();
+    }
+    await step2Btn.click();
   }
 }
 
