@@ -70,8 +70,19 @@ pipeline {
 
   post {
     always {
+      bat 'node scripts/copy-report.js'
       archiveArtifacts artifacts: 'playwright-report/**/*', allowEmptyArchive: true
+      archiveArtifacts artifacts: 'playwright-reports/**/*', allowEmptyArchive: true
       archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
+      // Requires "HTML Publisher" plugin. Build page will show "Playwright Report" link (same as local report with errors/screenshots).
+      publishHTML(target: [
+        allowMissing: true,
+        alwaysLinkToLastBuild: true,
+        keepAll: true,
+        reportDir: 'playwright-report',
+        reportFiles: 'index.html',
+        reportName: 'Playwright Report'
+      ])
     }
   }
 }
