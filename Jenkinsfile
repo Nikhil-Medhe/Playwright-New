@@ -52,6 +52,12 @@ pipeline {
       }
     }
 
+    stage('Prepare report') {
+      steps {
+        bat 'node scripts/copy-report.js'
+      }
+    }
+
   }
 
   post {
