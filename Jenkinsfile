@@ -95,14 +95,9 @@ Suite: ${params.TEST_SUITE}
 
 ${summary}
 
-HTML report: see attached playwright-report.zip (unzip and open index.html). Build artifacts: ${env.BUILD_URL}artifact/
-Console log: ${env.BUILD_URL}console
+Download report: ${env.BUILD_URL}artifact/ (playwright-report.zip). Console: ${env.BUILD_URL}console
 """
-        try {
-          emailext(to: recipients, subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body, attachmentsPattern: 'playwright-report.zip')
-        } catch (e) {
-          mail(to: recipients, subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
-        }
+        mail(to: recipients, subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
       }
     }
     failure {
@@ -118,14 +113,9 @@ Suite: ${params.TEST_SUITE}
 
 ${summary}
 
-HTML report: see attached playwright-report.zip (unzip and open index.html). Build artifacts: ${env.BUILD_URL}artifact/
-Console log: ${env.BUILD_URL}console
+Download report: ${env.BUILD_URL}artifact/ (playwright-report.zip). Console: ${env.BUILD_URL}console
 """
-        try {
-          emailext(to: recipients, subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body, attachmentsPattern: 'playwright-report.zip')
-        } catch (e) {
-          mail(to: recipients, subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
-        }
+        mail(to: recipients, subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
       }
     }
   }
