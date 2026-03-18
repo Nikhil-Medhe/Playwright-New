@@ -5,7 +5,8 @@
 const path = require('path');
 const fs = require('fs');
 
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const envPath = path.join(__dirname, '..', '.env');
+require('dotenv').config({ path: envPath });
 const nodemailer = require('nodemailer');
 
 const result = (process.argv[2] || 'pass').toLowerCase();
@@ -18,7 +19,9 @@ const pass = process.env.SMTP_PASS;
 const to = process.env.EMAIL_TO;
 
 if (!user || !pass) {
-  console.error('Set SMTP_USER and SMTP_PASS in .env (project root). Use Gmail App Password for Gmail.');
+  console.error('Local email: SMTP_USER or SMTP_PASS missing.');
+  console.error('Add them in .env at project root:', path.resolve(envPath));
+  console.error('Example: SMTP_USER=your@gmail.com  SMTP_PASS=app-password  EMAIL_TO=recipient@company.com');
   process.exit(1);
 }
 
@@ -69,11 +72,13 @@ async function send() {
   };
 
   try {
+    console.log('Sending email to:', mailOptions.to, '...');
     await transporter.sendMail(mailOptions);
-    console.log('Email sent to:', mailOptions.to);
+    console.log('Email sent successfully.');
     if (attachments.length) console.log('Attached: playwright-report.zip');
   } catch (err) {
     console.error('Email failed:', err.message);
+    if (err.response) console.error('SMTP response:', err.response);
     process.exit(1);
   }
 }

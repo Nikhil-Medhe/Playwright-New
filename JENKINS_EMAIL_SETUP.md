@@ -64,19 +64,33 @@ Recipients बदलण्यासाठी Jenkinsfile मधला `RECIPIENT
 
 ---
 
-## 5. Local run नंतर मेल पाठवणं (इथून)
+## 5. Local: Test run झाल्यावर report मेल (config)
 
-Local वर tests चालवून तुम्हाला मेल पाठवायचा असेल तर:
+**जेव्हा तुम्ही tests चालवाल तेव्हाच report मेल पण जावा** असं हवं असेल तर ही config वापरा.
 
-1. **.env** मध्ये (किंवा env मध्ये) set करा:
-   - `SMTP_HOST=smtp.gmail.com`
-   - `SMTP_PORT=587`
-   - `SMTP_USER=automation.qa.reports@gmail.com`
-   - `SMTP_PASS=<Gmail App Password>`
-   - `EMAIL_TO=nikhil.medhe@firstsource.com`
+### Step 1: .env मध्ये SMTP सेट करा
 
-2. चालवा:
-   - सगळे tests + मेल: **`npm run test:email`**
-   - फक्त OrderSubmission + मेल: **`npm run test:email:order`**
+Project root मध्ये `.env` फाइल (उदा. `D:\Playwright_old\playwright-ts\.env`):
 
-मेल **From:** automation.qa.reports@gmail.com, **To:** nikhil.medhe@firstsource.com जाईल (जे .env मध्ये दिलं असेल ते).
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=automation.qa.reports@gmail.com
+SMTP_PASS=<Gmail App Password>
+EMAIL_TO=nikhil.medhe@firstsource.com
+```
+
+Gmail साठी **App Password** वापरा (साधा password नाही).
+
+### Step 2: Tests चालवण्यासाठी हेच commands वापरा
+
+| काय चालवायचं | Command | मेल |
+|---------------|---------|-----|
+| सर्व tests + report मेल | **`npm run test`** | होय (run संपल्यावर आपोआप) |
+| फक्त OrderSubmission + report मेल | **`npm run order`** किंवा **`npm run test:order`** | होय (run संपल्यावर आपोआप) |
+| Tests बिना मेल | `npm run test:no-email` किंवा `npm run test:order:no-email` | नाही |
+| फक्त मेल test (कोणती test नाही) | `npm run email:test` | एक test मेल पाठवतो |
+
+**महत्त्व:** Report मेल पाठवण्यासाठी **`npm run test`** किंवा **`npm run order`** वापरा. **`npx playwright test ...`** थेट चालवल्यास मेल जात नाही.
+
+मेल **From:** SMTP_USER, **To:** EMAIL_TO (जे .env मध्ये दिलं असेल ते).

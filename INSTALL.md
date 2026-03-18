@@ -59,7 +59,7 @@ copy .env.example .env
 
 ## 6. Tests run करा
 
-सगळे tests:
+सगळे tests (run संपल्यावर report मेल पण जातो — .env मध्ये SMTP सेट असल्यास):
 
 ```bash
 npm run test
