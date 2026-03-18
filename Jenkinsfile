@@ -95,9 +95,9 @@ Suite: ${params.TEST_SUITE}
 
 ${summary}
 
-Report: attached playwright-report.zip (or download from Build Artifacts). Console: ${env.BUILD_URL}console
+Report: download playwright-report.zip from Build Artifacts. Console: ${env.BUILD_URL}console
 """
-        emailext(to: recipients, subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body, attachmentsPattern: 'playwright-report.zip')
+        mail(to: recipients, subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
       }
     }
     failure {
@@ -113,9 +113,9 @@ Suite: ${params.TEST_SUITE}
 
 ${summary}
 
-Report: attached playwright-report.zip (or download from Build Artifacts). Console: ${env.BUILD_URL}console
+Report: download playwright-report.zip from Build Artifacts. Console: ${env.BUILD_URL}console
 """
-        emailext(to: recipients, subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body, attachmentsPattern: 'playwright-report.zip')
+        mail(to: recipients, subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
       }
     }
   }
