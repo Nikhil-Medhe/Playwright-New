@@ -50,11 +50,11 @@ pipeline {
       steps {
         script {
           if (params.TEST_SUITE == 'OrderSubmission') {
-            bat 'npm run test:order'
+            bat 'npm run test:order:no-email'
           } else if (params.TEST_SUITE == 'cadSiteVersion') {
             bat 'npx playwright test tests/cadSiteVersion.spec.ts'
           } else {
-            bat 'npm run test'
+            bat 'npm run test:no-email'
           }
         }
       }
