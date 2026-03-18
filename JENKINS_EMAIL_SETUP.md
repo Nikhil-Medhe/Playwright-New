@@ -19,6 +19,25 @@
 
 ---
 
+## 1b. मेल मध्ये Report Zip Attach करण्यासाठी (Optional)
+
+मेलबरोबर **playwright-report.zip** attach व्हावा (ना फक्त link) तर **Email Extension** plugin चा SMTP सेट करावा लागतो:
+
+1. **Manage Jenkins** → **System**.
+2. खाली स्क्रोल करून **Extended E-mail Notification** section शोधा.
+3. तिथे **E-mail Notification** सारखंच भरा:
+   - **SMTP server:** `smtp.gmail.com` (किंवा तुमचा SMTP).
+   - **SMTP Port:** 587 (किंवा 465).
+   - **Use TLS:** होय (587 साठी); किंवा Use SSL (465 साठी).
+   - **Default user e-mail suffix:** जर लागत असेल.
+   - **Use SMTP Authentication:** होय.
+   - **User Name** आणि **Password:** same credentials (e.g. Gmail + App Password).
+4. **Save**.
+
+जर हे सेट नसेल तर मेल येऊ शकतो (built-in mail) पण attachment नाही; `emailext` वापरलं तर "Connection error" येऊ शकतो. दोन्ही (E-mail Notification + Extended E-mail Notification) एकाच SMTP ने भरल्यावर attachment सह मेल जातो.
+
+---
+
 ## 2. Playwright Job नंतर Email कसं येतं
 
 या repo मधला **Jenkinsfile** आधीच असं करतो:
