@@ -74,7 +74,6 @@ pipeline {
       archiveArtifacts artifacts: 'playwright-report/**/*', allowEmptyArchive: true
       archiveArtifacts artifacts: 'playwright-reports/**/*', allowEmptyArchive: true
       archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
-      // Requires "HTML Publisher" plugin. Build page will show "Playwright Report" link (same as local report with errors/screenshots).
       publishHTML(target: [
         allowMissing: true,
         alwaysLinkToLastBuild: true,
@@ -83,6 +82,58 @@ pipeline {
         reportFiles: 'index.html',
         reportName: 'Playwright Report'
       ])
+      script {
+        if (fileExists('test-results/junit.xml')) {
+          junit 'test-results/junit.xml'
+        }
+      }
+    }
+    success {
+      script {
+        // To: nikhil.medhe@firstsource.com (From: automation.qa.reports@gmail.com set in Jenkins SMTP)
+        def recipients = env.EMAIL_RECIPIENTS ?: 'nikhil.medhe@firstsource.com'
+        def summary = getTestSummary()
+        mail(to: recipients,
+             subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}",
+             body: """Playwright Test Result – SUCCESS
+
+Job: ${env.JOB_NAME}
+Build: #${env.BUILD_NUMBER}
+Suite: ${params.TEST_SUITE}
+${summary}
+
+Playwright Report (steps, screenshots): ${env.BUILD_URL}Playwright_20Report/
+Console log: ${env.BUILD_URL}console
+""")
+      }
+    }
+    failure {
+      script {
+        // To: nikhil.medhe@firstsource.com (From: automation.qa.reports@gmail.com set in Jenkins SMTP)
+        def recipients = env.EMAIL_RECIPIENTS ?: 'nikhil.medhe@firstsource.com'
+        def summary = getTestSummary()
+        mail(to: recipients,
+             subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}",
+             body: """Playwright Test Result – FAILED
+
+Job: ${env.JOB_NAME}
+Build: #${env.BUILD_NUMBER}
+Suite: ${params.TEST_SUITE}
+${summary}
+
+Playwright Report (failed steps, screenshots, video): ${env.BUILD_URL}Playwright_20Report/
+Console log: ${env.BUILD_URL}console
+""")
+      }
     }
   }
+}
+
+def getTestSummary() {
+  if (!fileExists('test-results/junit.xml')) return 'Test summary: See Playwright Report.'
+  def xml = readFile('test-results/junit.xml')
+  def t = (xml =~ /tests="(\d+)"/); def tests = t.find() ? t.group(1) : '?'
+  def f = (xml =~ /failures="(\d+)"/); def failures = f.find() ? f.group(1) : '?'
+  def passed = (tests ==~ /\d+/ && failures ==~ /\d+/) ? (tests.toInteger() - failures.toInteger()) : '?'
+  return "Tests: ${passed} passed, ${failures} failed (total ${tests})."
 }

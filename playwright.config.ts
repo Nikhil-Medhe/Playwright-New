@@ -20,7 +20,10 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   outputDir: path.join(process.cwd(), 'test-results', runId),
-  reporter: [['html', { outputFolder: path.join(process.cwd(), 'playwright-reports', runId), open: 'never' }]],
+  reporter: [
+    ['html', { outputFolder: path.join(process.cwd(), 'playwright-reports', runId), open: 'never' }],
+    ...(process.env.CI ? [['junit', { outputFile: path.join(process.cwd(), 'test-results', 'junit.xml') }]] : []),
+  ],
   timeout: envConfig.timeout,
   use: {
     baseURL: envConfig.baseURL,
