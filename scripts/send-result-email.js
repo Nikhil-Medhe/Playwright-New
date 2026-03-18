@@ -12,7 +12,20 @@ const nodemailer = require('nodemailer');
 
 const result = (process.argv[2] || 'pass').toLowerCase();
 const isPass = result === 'pass';
-const summary = process.argv[3] || (isPass ? 'All tests passed.' : 'One or more tests failed.');
+const fs = require('fs');
+const junitPath = path.join(__dirname, '..', 'test-results', 'junit.xml');
+let summary = process.argv[3];
+if (!summary && fs.existsSync(junitPath)) {
+  const xml = fs.readFileSync(junitPath, 'utf8');
+  const t = xml.match(/tests="(\d+)"/);
+  const f = xml.match(/failures="(\d+)"/);
+  const total = t ? t[1] : '?';
+  const failed = f ? f[1] : '?';
+  const passed = (total !== '?' && failed !== '?') ? (parseInt(total, 10) - parseInt(failed, 10)) : '?';
+  summary = `Tests: ${passed} passed, ${failed} failed (total ${total}).`;
+} else if (!summary) {
+  summary = isPass ? 'All tests passed.' : 'One or more tests failed.';
+}
 
 const host = process.env.SMTP_HOST || 'smtp.gmail.com';
 const port = Number(process.env.SMTP_PORT) || 587;
@@ -36,15 +49,12 @@ const transporter = nodemailer.createTransport({
 });
 
 const subject = isPass
-  ? `[PASS] Playwright local run – ${new Date().toISOString().slice(0, 19)}`
-  : `[FAIL] Playwright local run – ${new Date().toISOString().slice(0, 19)}`;
+  ? `[PASS] Playwright (Local) – ${new Date().toISOString().slice(0, 19)}`
+  : `[FAIL] Playwright (Local) – ${new Date().toISOString().slice(0, 19)}`;
 
-const body = `Playwright Test Result – ${isPass ? 'SUCCESS' : 'FAILED'}
+const body = `Playwright – Local run
 
-Job: Local run
-Build: -
-Suite: -
-
+Result: ${isPass ? 'SUCCESS' : 'FAILED'}
 ${summary}
 
 HTML report: see attached playwright-report.zip (unzip and open index.html).
@@ -52,8 +62,11 @@ HTML report: see attached playwright-report.zip (unzip and open index.html).
 
 const zipPath = path.join(__dirname, '..', 'playwright-report.zip');
 const attachments = [];
-if (require('fs').existsSync(zipPath)) {
-  attachments.push({ filename: 'playwright-report.zip', content: require('fs').readFileSync(zipPath) });
+if (fs.existsSync(zipPath)) {
+  attachments.push({ filename: 'playwright-report.zip', content: fs.readFileSync(zipPath) });
+  console.log('Attaching playwright-report.zip to email.');
+} else {
+  console.warn('playwright-report.zip not found – email will be sent without report attachment. Run copy-report and zip-report before sending.');
 }
 
 transporter.sendMail({

@@ -10,9 +10,16 @@ const path = require('path');
 const testScript = process.argv[2] || 'test';
 const runScript = path.join(__dirname, 'send-result-email.js');
 
+// Run actual test command (no npm run to avoid recursion when test/test:order point here)
+const testCmd = testScript === 'test'
+  ? 'node scripts/run-tests-with-id.js'
+  : testScript === 'test:order'
+    ? 'npx playwright test tests/OrderSubmission.spec.ts'
+    : `npm run ${testScript}`;
+
 let exitCode = 1;
 try {
-  execSync(`npm run ${testScript}`, { stdio: 'inherit', cwd: process.cwd() });
+  execSync(testCmd, { stdio: 'inherit', cwd: process.cwd() });
   exitCode = 0;
 } catch (e) {
   exitCode = e.status ?? 1;

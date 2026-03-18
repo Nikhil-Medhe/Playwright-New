@@ -94,8 +94,9 @@ pipeline {
       script {
         def recipients = env.EMAIL_RECIPIENTS ?: 'nikhil.medhe@firstsource.com'
         def summary = getTestSummary()
-        def body = """Playwright Test Result – SUCCESS
+        def body = """Playwright – Jenkins
 
+Result: SUCCESS
 Job: ${env.JOB_NAME}
 Build: #${env.BUILD_NUMBER}
 Suite: ${params.TEST_SUITE}
@@ -103,7 +104,7 @@ Suite: ${params.TEST_SUITE}
 ${summary}
 
 HTML report: see attached playwright-report.zip (unzip and open index.html).
-Playwright Report (steps, screenshots): ${env.BUILD_URL}Playwright_20Report/
+Playwright Report: ${env.BUILD_URL}Playwright_20Report/
 Console log: ${env.BUILD_URL}console
 """
         try {
@@ -117,8 +118,9 @@ Console log: ${env.BUILD_URL}console
       script {
         def recipients = env.EMAIL_RECIPIENTS ?: 'nikhil.medhe@firstsource.com'
         def summary = getTestSummary()
-        def body = """Playwright Test Result – FAILED
+        def body = """Playwright – Jenkins
 
+Result: FAILED
 Job: ${env.JOB_NAME}
 Build: #${env.BUILD_NUMBER}
 Suite: ${params.TEST_SUITE}
@@ -126,7 +128,7 @@ Suite: ${params.TEST_SUITE}
 ${summary}
 
 HTML report: see attached playwright-report.zip (unzip and open index.html).
-Playwright Report (failed steps, screenshots, video): ${env.BUILD_URL}Playwright_20Report/
+Playwright Report: ${env.BUILD_URL}Playwright_20Report/
 Console log: ${env.BUILD_URL}console
 """
         try {
