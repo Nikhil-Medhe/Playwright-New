@@ -76,14 +76,6 @@ pipeline {
       archiveArtifacts artifacts: 'playwright-report.zip', allowEmptyArchive: true
       archiveArtifacts artifacts: 'playwright-reports/**/*', allowEmptyArchive: true
       archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
-      publishHTML(target: [
-        allowMissing: true,
-        alwaysLinkToLastBuild: true,
-        keepAll: true,
-        reportDir: 'playwright-report',
-        reportFiles: 'index.html',
-        reportName: 'Playwright Report'
-      ])
       script {
         if (fileExists('test-results/junit.xml')) {
           junit 'test-results/junit.xml'
@@ -103,8 +95,7 @@ Suite: ${params.TEST_SUITE}
 
 ${summary}
 
-HTML report: see attached playwright-report.zip (unzip and open index.html).
-Playwright Report: ${env.BUILD_URL}Playwright_20Report/
+HTML report: see attached playwright-report.zip (unzip and open index.html). Build artifacts: ${env.BUILD_URL}artifact/
 Console log: ${env.BUILD_URL}console
 """
         try {
@@ -127,8 +118,7 @@ Suite: ${params.TEST_SUITE}
 
 ${summary}
 
-HTML report: see attached playwright-report.zip (unzip and open index.html).
-Playwright Report: ${env.BUILD_URL}Playwright_20Report/
+HTML report: see attached playwright-report.zip (unzip and open index.html). Build artifacts: ${env.BUILD_URL}artifact/
 Console log: ${env.BUILD_URL}console
 """
         try {

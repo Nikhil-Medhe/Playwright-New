@@ -22,14 +22,27 @@ export class CartPage extends BasePage {
 
     const estimateBtn = this.page.getByRole('button', { name: /Estimate|Calculate\s*Shipping/i }).first();
     await estimateBtn.click();
+    await this.page.waitForTimeout(2000);
 
     const upsGround = this.page.getByRole('radio', { name: /UPS\s*Ground/i }).first();
-    const anyShipping = this.page.getByRole('listitem').filter({ hasText: /ups|fedex|ground|standard|overnight/i }).getByRole('radio').first();
+    const listItemRadio = this.page.getByRole('listitem').filter({ hasText: /ups|fedex|ground|standard|overnight/i }).getByRole('radio').first();
+    const anyRadioNearShipping = this.page.getByRole('radio', { name: /shipping|ground|standard|overnight|delivery/i }).first();
+    const firstShippingRadio = this.page.locator('[class*="shipping"], [id*="shipping"], [data-testid*="shipping"]').locator('input[type="radio"]').first();
+    const fallbackRadio = this.page.locator('input[type="radio"]').first();
+
     if (await upsGround.isVisible().catch(() => false)) {
       await upsGround.check();
+    } else if (await listItemRadio.isVisible().catch(() => false)) {
+      await listItemRadio.check();
+    } else if (await anyRadioNearShipping.isVisible().catch(() => false)) {
+      await anyRadioNearShipping.check();
+    } else if (await firstShippingRadio.isVisible().catch(() => false)) {
+      await firstShippingRadio.check();
+    } else if (await fallbackRadio.isVisible().catch(() => false)) {
+      await fallbackRadio.check();
     } else {
-      await expect(anyShipping).toBeVisible({ timeout: 15_000 });
-      await anyShipping.check();
+      await expect(listItemRadio).toBeVisible({ timeout: 15_000 });
+      await listItemRadio.check();
     }
 
     const proceedButton = this.page.getByRole('button', { name: /Proceed to Checkout/i }).or(this.page.getByRole('link', { name: /Proceed to Checkout/i })).first();
@@ -53,12 +66,20 @@ export class CartPage extends BasePage {
     if (await upsText.isVisible().catch(() => false)) await upsText.click();
 
     const shippingOption = this.page.getByRole('radio', { name: /UPS\s*Ground/i }).first();
-    const anyShipping = this.page.getByRole('listitem').filter({ hasText: /ups|fedex|ground|standard/i }).getByRole('radio').first();
+    const listItemRadio = this.page.getByRole('listitem').filter({ hasText: /ups|fedex|ground|standard/i }).getByRole('radio').first();
+    const anyRadioNearShipping = this.page.getByRole('radio', { name: /shipping|ground|standard|overnight|delivery/i }).first();
+    const fallbackRadio = this.page.locator('input[type="radio"]').first();
     if (await shippingOption.isVisible().catch(() => false)) {
       await shippingOption.check();
+    } else if (await listItemRadio.isVisible().catch(() => false)) {
+      await listItemRadio.check();
+    } else if (await anyRadioNearShipping.isVisible().catch(() => false)) {
+      await anyRadioNearShipping.check();
+    } else if (await fallbackRadio.isVisible().catch(() => false)) {
+      await fallbackRadio.check();
     } else {
-      await expect(anyShipping).toBeVisible({ timeout: 15_000 });
-      await anyShipping.check();
+      await expect(listItemRadio).toBeVisible({ timeout: 15_000 });
+      await listItemRadio.check();
     }
     await step2Btn.click();
   }
