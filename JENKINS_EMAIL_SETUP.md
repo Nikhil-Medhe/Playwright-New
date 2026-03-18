@@ -42,3 +42,22 @@ Recipients बदलण्यासाठी Jenkinsfile मधला `RECIPIENT
 - **Body:** Job name, Build #, Suite, **Tests: X passed, Y failed (total Z)**, + Playwright Report link + Console link.
 
 हर run नंतर (pass किंवा fail) mail मध्ये test result summary (passed/failed count) आणि report link असतो.
+
+---
+
+## 5. Local run नंतर मेल पाठवणं (इथून)
+
+Local वर tests चालवून तुम्हाला मेल पाठवायचा असेल तर:
+
+1. **.env** मध्ये (किंवा env मध्ये) set करा:
+   - `SMTP_HOST=smtp.gmail.com`
+   - `SMTP_PORT=587`
+   - `SMTP_USER=automation.qa.reports@gmail.com`
+   - `SMTP_PASS=<Gmail App Password>`
+   - `EMAIL_TO=nikhil.medhe@firstsource.com`
+
+2. चालवा:
+   - सगळे tests + मेल: **`npm run test:email`**
+   - फक्त OrderSubmission + मेल: **`npm run test:email:order`**
+
+मेल **From:** automation.qa.reports@gmail.com, **To:** nikhil.medhe@firstsource.com जाईल (जे .env मध्ये दिलं असेल ते).

@@ -6,6 +6,7 @@
 node_modules/
 /test-results/
 /playwright-report/
+/playwright-report.zip
 /playwright-reports/
 /report-downloads/
 /blob-report/

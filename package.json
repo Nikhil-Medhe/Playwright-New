@@ -7,6 +7,8 @@
     "test": "node scripts/run-tests-with-id.js",
     "test:order": "npx playwright test tests/OrderSubmission.spec.ts",
     "report": "node scripts/show-latest-report.js",
+    "test:email": "node scripts/run-tests-and-email.js",
+    "test:email:order": "node scripts/run-tests-and-email.js test:order",
     "test:slow": "node scripts/run-slow.js",
     "test:ui": "node scripts/run-tests-with-id.js --ui",
     "test:headed": "node scripts/run-tests-with-id.js --headed",
@@ -22,6 +24,9 @@
   "type": "commonjs",
   "devDependencies": {
     "@playwright/test": "^1.58.1",
-    "@types/node": "^25.2.0"
+    "@types/node": "^25.2.0",
+    "dotenv": "^16.0.3",
+    "nodemailer": "^6.9.0",
+    "archiver": "^7.0.0"
   }
 }

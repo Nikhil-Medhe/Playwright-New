@@ -71,7 +71,9 @@ pipeline {
   post {
     always {
       bat 'node scripts/copy-report.js'
+      bat 'node scripts/zip-report.js'
       archiveArtifacts artifacts: 'playwright-report/**/*', allowEmptyArchive: true
+      archiveArtifacts artifacts: 'playwright-report.zip', allowEmptyArchive: true
       archiveArtifacts artifacts: 'playwright-reports/**/*', allowEmptyArchive: true
       archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
       publishHTML(target: [
@@ -90,40 +92,48 @@ pipeline {
     }
     success {
       script {
-        // To: nikhil.medhe@firstsource.com (From: automation.qa.reports@gmail.com set in Jenkins SMTP)
         def recipients = env.EMAIL_RECIPIENTS ?: 'nikhil.medhe@firstsource.com'
         def summary = getTestSummary()
-        mail(to: recipients,
-             subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}",
-             body: """Playwright Test Result – SUCCESS
+        def body = """Playwright Test Result – SUCCESS
 
 Job: ${env.JOB_NAME}
 Build: #${env.BUILD_NUMBER}
 Suite: ${params.TEST_SUITE}
+
 ${summary}
 
+HTML report: see attached playwright-report.zip (unzip and open index.html).
 Playwright Report (steps, screenshots): ${env.BUILD_URL}Playwright_20Report/
 Console log: ${env.BUILD_URL}console
-""")
+"""
+        try {
+          emailext(to: recipients, subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body, attachmentsPattern: 'playwright-report.zip')
+        } catch (e) {
+          mail(to: recipients, subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
+        }
       }
     }
     failure {
       script {
-        // To: nikhil.medhe@firstsource.com (From: automation.qa.reports@gmail.com set in Jenkins SMTP)
         def recipients = env.EMAIL_RECIPIENTS ?: 'nikhil.medhe@firstsource.com'
         def summary = getTestSummary()
-        mail(to: recipients,
-             subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}",
-             body: """Playwright Test Result – FAILED
+        def body = """Playwright Test Result – FAILED
 
 Job: ${env.JOB_NAME}
 Build: #${env.BUILD_NUMBER}
 Suite: ${params.TEST_SUITE}
+
 ${summary}
 
+HTML report: see attached playwright-report.zip (unzip and open index.html).
 Playwright Report (failed steps, screenshots, video): ${env.BUILD_URL}Playwright_20Report/
 Console log: ${env.BUILD_URL}console
-""")
+"""
+        try {
+          emailext(to: recipients, subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body, attachmentsPattern: 'playwright-report.zip')
+        } catch (e) {
+          mail(to: recipients, subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
+        }
       }
     }
   }
