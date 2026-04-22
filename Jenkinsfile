@@ -7,9 +7,10 @@ pipeline {
       choices: [
         'OrderSubmission',
         'cadSiteVersion',
+        'cadSiteVersion1_OrderManager',
         'all'
       ],
-      description: 'Run only OrderSubmission, only cadSiteVersion, or all tests'
+      description: 'OrderSubmission / cadSiteVersion / cadSiteVersion1 then orderManager (writes test-results/last-order-ref.txt) / all tests'
     )
   }
 
@@ -53,6 +54,8 @@ pipeline {
             bat 'npm run test:order:no-email'
           } else if (params.TEST_SUITE == 'cadSiteVersion') {
             bat 'npx playwright test tests/cadSiteVersion.spec.ts'
+          } else if (params.TEST_SUITE == 'cadSiteVersion1_OrderManager') {
+            bat 'npm run test:cad1-then-om'
           } else {
             bat 'npm run test:no-email'
           }

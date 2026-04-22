@@ -8,3 +8,4 @@ export {
 } from './dataLoader';
 export { expect, expectPath } from './assertions';
 export { waitForVisible, waitForNetworkIdle, retry } from './waitHelpers';
+export { readLastOrderRef, writeLastOrderRef } from './lastOrderRefArtifact';

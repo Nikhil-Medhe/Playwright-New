@@ -1,0 +1,4 @@
+run,test_id,spec_file,grep_title,flow_notes
+Y,TC-CAD-001,tests/cadSiteVersion.spec.ts,recorded login and checkout,Login → Website Manager → catalog popup → cart → checkout → submit
+Y,TC-CAT-001,tests/CategoryResults.spec.ts,category results,Category page search Brake + results link
+N,TC-ORD-001,tests/OrderSubmission.spec.ts,,Set run=Y when you want this flow in the matrix

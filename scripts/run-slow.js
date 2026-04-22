@@ -1,6 +1,8 @@
 /**
- * Runs Playwright tests in headed mode with slowMo=500ms so you can see each step.
- * Sets PLAYWRIGHT_RUN_ID so this run gets its own folder (no override).
+ * Runs Playwright tests in headed mode with slowMo (default 500ms) so you can see each step.
+ * Sets PLAYWRIGHT_RUN_ID so this run gets its own folder.
+ * Full chain: npm run test:cad1-then-om:slow
+ * Slower: SLOW_MO=1000 npm run test:cad1-then-om:slow
  */
 process.env.SLOW_MO = process.env.SLOW_MO || '500';
 const now = new Date();
@@ -10,7 +12,9 @@ const timePart = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getS
 process.env.PLAYWRIGHT_RUN_ID = `run-${datePart}_${timePart}`;
 const { execSync } = require('child_process');
 const args = process.argv.slice(2);
-execSync(
-  ['npx', 'playwright', 'test', '--headed', ...args].join(' '),
-  { stdio: 'inherit', env: process.env }
-);
+execSync(['npx', 'playwright', 'test', '--headed', ...args].join(' '), {
+  stdio: 'inherit',
+  env: process.env,
+  cwd: process.cwd(),
+  shell: true,
+});

@@ -13,6 +13,47 @@ function getRunId() {
 }
 const runId = getRunId();
 
+/**
+ * Default locally: **headed** (browser visible). Headless when `CI=true` and not overridden.
+ * - `PLAYWRIGHT_HEADED=true` — always show browser (wins over `HEADLESS=true` in `.env`).
+ * - `HEADLESS=true` — background browser. `HEADLESS=false` — force headed.
+ * - CLI `--headed` still forces headed for that run.
+ */
+function useHeadless(): boolean {
+  const headed = process.env.PLAYWRIGHT_HEADED?.trim().toLowerCase();
+  if (headed === '1' || headed === 'true' || headed === 'yes') return false;
+  if (process.env.HEADLESS === 'false') return false;
+  if (process.env.HEADLESS === 'true') return true;
+  return process.env.CI === 'true';
+}
+
+/** Maximized Chromium window + full viewport (disable: `PLAYWRIGHT_MAXIMIZE=false`). */
+function useStartMaximized(): boolean {
+  return process.env.PLAYWRIGHT_MAXIMIZE !== 'false';
+}
+
+/** `viewport: null` is incompatible with `deviceScaleFactor` from `devices['Desktop Chrome']`. */
+function chromiumUseOptions() {
+  const desktop = { ...devices['Desktop Chrome'] } as Record<string, unknown>;
+  if (useStartMaximized()) {
+    delete desktop.deviceScaleFactor;
+    return {
+      ...desktop,
+      viewport: null as const,
+      launchOptions: {
+        slowMo: Number(process.env.SLOW_MO) || 0,
+        args: ['--start-maximized'],
+      },
+    };
+  }
+  return {
+    ...desktop,
+    launchOptions: {
+      slowMo: Number(process.env.SLOW_MO) || 0,
+    },
+  };
+}
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -27,7 +68,7 @@ export default defineConfig({
   timeout: envConfig.timeout,
   use: {
     baseURL: envConfig.baseURL,
-    headless: process.env.HEADLESS === 'true',
+    headless: useHeadless(),
     /* Capture screenshots/videos only on failures. */
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -39,12 +80,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        launchOptions: {
-          slowMo: Number(process.env.SLOW_MO) || 0,
-        },
-      },
+      use: chromiumUseOptions(),
     },
 
     /*{

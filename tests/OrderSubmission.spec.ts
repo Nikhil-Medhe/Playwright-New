@@ -19,12 +19,16 @@ test('OrderSubmission: catalog → cart → checkout → submit order (pub)', as
     await expect(page).toHaveURL(/item-1/);
   });
 
+  /** Cart target URL is on the dialog button as `data-url`, not a header link `href`. */
+  let viewCartDataUrl: string | null = null;
   await test.step('Add to cart (quantity 2) and open View Cart dialog', async () => {
     await page.locator('#plp-cart-quantity').fill('2');
     await page.getByRole('link', { name: 'Add To Cart' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
-    await dialog.locator('button').filter({ hasText: 'View Cart' }).click();
+    const viewCartBtn = dialog.getByRole('button', { name: 'View Cart' });
+    viewCartDataUrl = await viewCartBtn.getAttribute('data-url');
+    await viewCartBtn.click();
   });
 
   const CART_OR_VIEWCART = /viewcart|cart\.cn-qam-pub\.catnav\.us/i;
@@ -44,11 +48,31 @@ test('OrderSubmission: catalog → cart → checkout → submit order (pub)', as
       }
       if (i === 7) {
         await page.keyboard.press('Escape');
-        const cartLink = page.getByRole('link', { name: /shopping cart/i });
-        const href = await cartLink.getAttribute('href');
-        if (href) await page.goto(href, { waitUntil: 'domcontentloaded', timeout: 15000 });
-        else await cartLink.click({ force: true });
-        cartPage = page;
+        const navTimeout = 60_000;
+        const findCartPage = () =>
+          page.context().pages().find((p) => CART_OR_VIEWCART.test(p.url()));
+
+        let found = findCartPage();
+        const until = Date.now() + 2_000;
+        while (!found && Date.now() < until) {
+          await new Promise((r) => setTimeout(r, 200));
+          found = findCartPage();
+        }
+
+        if (found) {
+          cartPage = found;
+        } else {
+          const cartUrl =
+            viewCartDataUrl ??
+            (await page.locator('#edit-attr-view-cart').getAttribute('data-url'));
+          if (!cartUrl) {
+            throw new Error(
+              'Cart fallback: no data-url (capture from View Cart button when dialog is open)'
+            );
+          }
+          await page.goto(cartUrl, { waitUntil: 'domcontentloaded', timeout: navTimeout });
+          cartPage = page;
+        }
       }
     }
   });

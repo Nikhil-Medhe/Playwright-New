@@ -1,23 +1,34 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures';
 import { WebsiteManagerPage } from '../pages/WebsiteManagerPage';
 import { CartPage } from '../pages/CartPage';
 
+/** Live catalog (default). Override: CAD_CATALOG_URL=https://nikhil.cn-qam-stage.catnav.us */
+const CAD_CATALOG_BASE = (process.env.CAD_CATALOG_URL || 'https://nikhil.cn-qam-pub.catnav.us').replace(/\/$/, '');
+const CATALOG_HOSTNAME = new URL(`${CAD_CATALOG_BASE}/`).hostname;
+const CATALOG_HOSTNAME_RE = new RegExp(CATALOG_HOSTNAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+/** Exact URL only — do not use hostname regex (matches Integration "…/links" too → strict mode violation). */
+const catalogHomeLink = (p: Page) =>
+  p
+    .getByRole('link', { name: CAD_CATALOG_BASE, exact: true })
+    .or(p.getByRole('link', { name: `${CAD_CATALOG_BASE}/`, exact: true }));
+
 test('Cad Site Version flow', async ({ loggedInWebsiteManagerPage }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   const websiteManager = new WebsiteManagerPage(loggedInWebsiteManagerPage);
   const page = loggedInWebsiteManagerPage;
 
   let catalogPage;
   await test.step('Open Cad Site Version details and open catalog popup', async () => {
     await websiteManager.openCadSiteVersionDetails();
-    const catalogLink = page.getByRole('link', { name: /nikhil.*cn-qam-stage|http.*nikhil.*cn-qam-stage/i });
-    await expect(catalogLink).toBeVisible({ timeout: 15_000 });
+    const catalogLink = catalogHomeLink(page);
+    await expect(catalogLink.first()).toBeVisible({ timeout: 15_000 });
     const catalogPopupPromise = page.waitForEvent('popup', { timeout: 15_000 });
-    await catalogLink.click();
+    await catalogLink.first().click();
     catalogPage = await catalogPopupPromise;
   });
   await test.step('Verify catalog URL', async () => {
-    await expect(catalogPage).toHaveURL(/nikhil\.cn-qam-stage\.catnav\.us/);
+    await expect(catalogPage).toHaveURL(CATALOG_HOSTNAME_RE);
   });
 
   await test.step('Add item to cart (Engine parts > Brake system > Add To Cart > View Cart)', async () => {
@@ -61,8 +72,13 @@ test('Cad Site Version flow', async ({ loggedInWebsiteManagerPage }) => {
     await cartPageModel.fillBasicShippingAddress();
   });
 
-  await test.step('Go to payment and confirm shipping', async () => {
+  await test.step('Shipping rates, payment (COD), review', async () => {
     const cartPageModel = new CartPage(cartPage);
     await cartPageModel.goToPaymentAndConfirmShipping();
+  });
+
+  await test.step('Submit order and assert thank-you page', async () => {
+    const cartPageModel = new CartPage(cartPage);
+    await cartPageModel.submitOrderAndAssertThankYou();
   });
 });
