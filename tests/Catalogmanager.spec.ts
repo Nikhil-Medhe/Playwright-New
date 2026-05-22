@@ -61,11 +61,14 @@ test('Catalog Manager — login, categories, expand tree', async ({ page }) => {
   const goBtn = page.locator('#js-category-search-go');
   await goBtn.scrollIntoViewIfNeeded();
   await goBtn.click({ force: true });
-  const testCategoryRow = categoryTree.getByRole('row', { name: /TEST\s*\[\d+\s*items?\]/i }).first();
+  const testCategoryRow = categoryTree
+    .getByRole('row', { name: /test\s*\[\d+\s*items?\]/i })
+    .filter({ hasNotText: /All Categories/i })
+    .first();
   const noCategoryMatches = page.getByRole('heading', { name: /No category matches your criteria/i });
   await expect(testCategoryRow.or(noCategoryMatches).first()).toBeVisible({ timeout: 30_000 });
   if (await testCategoryRow.isVisible().catch(() => false)) {
-    await expect(testCategoryRow).toContainText('TEST');
+    await expect(testCategoryRow).toContainText(/test/i);
   }
 
   const leftNav = (title: string) => {
