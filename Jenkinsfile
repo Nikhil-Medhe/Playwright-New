@@ -15,19 +15,27 @@ pipeline {
     choice(
       name: 'TEST_SUITE',
       choices: [
-        'OrderSubmission',
+        'all',
         'Catalogmanager',
+        'CompareItem',
+        'DownloadPDF',
+        'EmailThisPage-New',
         'cadSiteVersion1',
         'cadSiteVersion1_OrderManager',
-        'cadSiteVersion',
-        'all'
+        'Keyword search',
+        'login',
+        'orderManager',
+        'OrderSubmission',
+        'PCATBasicNavigation',
+        'Promotions',
+        'RequestInformation'
       ],
-      description: 'Spec(s) to run. cadSiteVersion1_OrderManager = cadSiteVersion1 then orderManager (order ref file).'
+      description: 'One spec per run, or all = every tests/*.spec.ts (excludes *-recorded). cadSiteVersion1_OrderManager = cad1 then orderManager.'
     )
   }
 
   options {
-    timeout(time: 45, unit: 'MINUTES')
+    timeout(time: 90, unit: 'MINUTES')
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
 
@@ -76,19 +84,30 @@ pipeline {
             if (code != 0) error("Playwright failed (exit ${code}): ${cmd}")
           }
 
-          if (params.TEST_SUITE == 'OrderSubmission') {
-            runTarget('tests/OrderSubmission.spec.ts')
-          } else if (params.TEST_SUITE == 'Catalogmanager') {
-            runTarget('tests/Catalogmanager.spec.ts')
-          } else if (params.TEST_SUITE == 'cadSiteVersion1') {
-            runTarget('tests/cadSiteVersion1.spec.ts')
+          def specBySuite = [
+            'Catalogmanager'       : 'tests/Catalogmanager.spec.ts',
+            'CompareItem'          : 'tests/CompareItem.spec.ts',
+            'DownloadPDF'          : 'tests/DownloadPDF.spec.ts',
+            'EmailThisPage-New'    : 'tests/EmailThisPage-New.spec.ts',
+            'cadSiteVersion1'      : 'tests/cadSiteVersion1.spec.ts',
+            'Keyword search'       : 'tests/Keyword search.spec.ts',
+            'login'                : 'tests/login.spec.ts',
+            'orderManager'         : 'tests/orderManager.spec.ts',
+            'OrderSubmission'      : 'tests/OrderSubmission.spec.ts',
+            'PCATBasicNavigation'  : 'tests/PCATBasicNavigation.spec.ts',
+            'Promotions'           : 'tests/Promotions.spec.ts',
+            'RequestInformation'   : 'tests/RequestInformation.spec.ts',
+          ]
+
+          if (params.TEST_SUITE == 'all') {
+            runTarget('')
           } else if (params.TEST_SUITE == 'cadSiteVersion1_OrderManager') {
             runTarget('tests/cadSiteVersion1.spec.ts')
             runTarget('tests/orderManager.spec.ts')
-          } else if (params.TEST_SUITE == 'cadSiteVersion') {
-            runTarget('tests/cadSiteVersion.spec.ts')
+          } else if (specBySuite[params.TEST_SUITE]) {
+            runTarget(specBySuite[params.TEST_SUITE])
           } else {
-            runTarget('')
+            error("Unknown TEST_SUITE: ${params.TEST_SUITE}")
           }
         }
       }
