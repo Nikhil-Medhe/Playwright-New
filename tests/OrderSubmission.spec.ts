@@ -1,80 +1,30 @@
 import { test, expect } from '../fixtures';
-
-const CATALOG_URL = 'https://nikhil.cn-qam-pub.catnav.us/';
+import { PublicCatalogPage } from '../pages/PublicCatalogPage';
+import { CartPage } from '../pages/CartPage';
 
 test('OrderSubmission: catalog → cart → checkout → submit order (pub)', async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
+
+  const catalog = new PublicCatalogPage(page);
 
   await test.step('Open catalog and verify All Categories', async () => {
-    await page.goto(CATALOG_URL);
-    await expect(page.getByRole('heading', { name: /all categories/i })).toBeVisible();
+    await catalog.gotoHome();
+    await catalog.expectAllCategoriesHeading();
   });
 
-  await test.step('Navigate to Engine parts > Brake system > Item 1', async () => {
-    await page.getByRole('link', { name: 'Engine parts' }).click();
-    await expect(page).toHaveURL(/engine-parts/);
-    await page.getByRole('link', { name: 'Brake system' }).click();
-    await expect(page).toHaveURL(/brake-system/);
-    await page.getByRole('link', { name: 'Item 1' }).click();
-    await expect(page).toHaveURL(/item-1/);
+  await test.step('Navigate to Engine parts > Brake system (view items PLP)', async () => {
+    await catalog.openEngineParts();
+    await catalog.openBrakeSystemViewItemsPlP();
   });
 
-  /** Cart target URL is on the dialog button as `data-url`, not a header link `href`. */
   let viewCartDataUrl: string | null = null;
-  await test.step('Add to cart (quantity 2) and open View Cart dialog', async () => {
-    await page.locator('#plp-cart-quantity').fill('2');
-    await page.getByRole('link', { name: 'Add To Cart' }).click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-    const viewCartBtn = dialog.getByRole('button', { name: 'View Cart' });
-    viewCartDataUrl = await viewCartBtn.getAttribute('data-url');
-    await viewCartBtn.click();
+  await test.step('Add to cart (quantity 2) from first PLP row and open View Cart dialog', async () => {
+    viewCartDataUrl = await catalog.addFirstBrakePlpRowQtyToCartAndClickViewCart('2');
   });
 
-  const CART_OR_VIEWCART = /viewcart|cart\.cn-qam-pub\.catnav\.us/i;
   let cartPage = page;
   await test.step('Resolve cart page (same tab or new tab)', async () => {
-    for (let i = 0; i < 8; i++) {
-      await new Promise((r) => setTimeout(r, 500));
-      if (CART_OR_VIEWCART.test(page.url())) {
-        cartPage = page;
-        return;
-      }
-      const pages = page.context().pages();
-      const cartTab = pages.find((p) => p !== page && CART_OR_VIEWCART.test(p.url()));
-      if (cartTab) {
-        cartPage = cartTab;
-        return;
-      }
-      if (i === 7) {
-        await page.keyboard.press('Escape');
-        const navTimeout = 60_000;
-        const findCartPage = () =>
-          page.context().pages().find((p) => CART_OR_VIEWCART.test(p.url()));
-
-        let found = findCartPage();
-        const until = Date.now() + 2_000;
-        while (!found && Date.now() < until) {
-          await new Promise((r) => setTimeout(r, 200));
-          found = findCartPage();
-        }
-
-        if (found) {
-          cartPage = found;
-        } else {
-          const cartUrl =
-            viewCartDataUrl ??
-            (await page.locator('#edit-attr-view-cart').getAttribute('data-url'));
-          if (!cartUrl) {
-            throw new Error(
-              'Cart fallback: no data-url (capture from View Cart button when dialog is open)'
-            );
-          }
-          await page.goto(cartUrl, { waitUntil: 'domcontentloaded', timeout: navTimeout });
-          cartPage = page;
-        }
-      }
-    }
+    cartPage = await CartPage.resolveCartPageOrderSubmissionStyle(page, viewCartDataUrl);
   });
 
   await test.step('Proceed to Checkout', async () => {
@@ -104,7 +54,11 @@ test('OrderSubmission: catalog → cart → checkout → submit order (pub)', as
     await cartPage.locator('#chkIsResidential').check();
     await cartPage.getByRole('button', { name: 'Calculate Shipping' }).click();
     const fedexOption = cartPage.getByRole('listitem').filter({ hasText: /fedex.*priority.*overnight/i }).getByRole('radio');
-    const anyShippingRadio = cartPage.getByRole('listitem').filter({ hasText: /fedex|ups|standard|ground|overnight/i }).getByRole('radio').first();
+    const anyShippingRadio = cartPage
+      .getByRole('listitem')
+      .filter({ hasText: /fedex|ups|standard|ground|overnight/i })
+      .getByRole('radio')
+      .first();
     if (await fedexOption.isVisible().catch(() => false)) {
       await fedexOption.check();
     } else {
@@ -116,7 +70,9 @@ test('OrderSubmission: catalog → cart → checkout → submit order (pub)', as
   await test.step('Step 2: Payment - billing same as shipping', async () => {
     await expect(cartPage.getByRole('button', { name: /Step 2.*Payment/i })).toBeVisible();
     await cartPage.getByRole('button', { name: /Step 2.*Payment/i }).click();
-    await expect(cartPage.getByRole('heading', { name: /billing address|payment method/i }).first()).toBeVisible({ timeout: 15000 });
+    await expect(cartPage.getByRole('heading', { name: /billing address|payment method/i }).first()).toBeVisible({
+      timeout: 15000,
+    });
     await cartPage.locator('#ecomm-billing-same').check();
   });
 
@@ -138,7 +94,7 @@ test('OrderSubmission: catalog → cart → checkout → submit order (pub)', as
     if (await orderNumberBox.first().isVisible().catch(() => false)) await orderNumberBox.first().fill('1234');
     await submitOrderBtn.first().click();
     await expect(
-      cartPage.getByText(/thank you|order (confirmed|submitted|number)|success|confirmation|placed/i)
+      cartPage.getByText(/thank you|order (confirmed|submitted|number)|success|confirmation|placed/i),
     ).toBeVisible({ timeout: 20000 });
   });
 });

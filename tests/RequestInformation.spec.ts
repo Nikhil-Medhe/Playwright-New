@@ -1,100 +1,54 @@
 import { test, expect } from '@playwright/test';
+import { PublicCatalogPage } from '../pages/PublicCatalogPage';
+import { RequestInformationPage, RFI_MAX_ITEMS_MESSAGE } from '../pages/RequestInformationPage';
 
-test('test', async ({ page }) => {
-  await page.goto('https://nikhil.cn-qam-pub.catnav.us/');
-  await page.getByRole('link', { name: 'Engine parts' }).click();
-  await page.getByRole('link', { name: 'Brake system' }).click();
-  await page.locator('[id="1070"]').check();
-  await page.locator('[id="1071"]').check();
-  await page.locator('[id="1072"]').check();
-  await page.locator('[id="1073"]').check();
-  await page.locator('[id="1074"]').check();
-  await page.getByRole('button', { name: 'Request Information' }).click();
-  
-  await page.locator('#RFIAttributes_0__Value_0__Data_Char').click();
-  await page.locator('#RFIAttributes_0__Value_0__Data_Char').fill('N');
-  await page.locator('#RFIAttributes_0__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_0__Value_0__Data_Char').fill('Nikhil');
-  await page.locator('#RFIAttributes_0__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_0__Value_1__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_1__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_1__Value_0__Data_Char').fill('QA');
-  await page.locator('#RFIAttributes_1__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_2__Value_0__Data_Char').fill('T');
-  await page.locator('#RFIAttributes_2__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_2__Value_0__Data_Char').fill('Test');
-  await page.locator('#RFIAttributes_2__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_3__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_3__Value_0__Data_Char').fill('T');
-  await page.locator('#RFIAttributes_3__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_3__Value_0__Data_Char').fill('Test');
-  await page.locator('#RFIAttributes_3__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_4__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_4__Value_0__Data_Char').fill('T');
-  await page.locator('#RFIAttributes_4__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_4__Value_0__Data_Char').fill('Test');
-  await page.locator('#RFIAttributes_4__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_5__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_5__Value_0__Data_Char').fill('T');
-  await page.locator('#RFIAttributes_5__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_5__Value_0__Data_Char').fill('Test');
-  await page.locator('#RFIAttributes_5__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_6__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_6__Value_0__Data_Char').fill('T');
-  await page.locator('#RFIAttributes_6__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_6__Value_0__Data_Char').fill('Test 1');
-  await page.locator('#RFIAttributes_7__Value_0__Data_Char').click();
-  await page.locator('#RFIAttributes_7__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_7__Value_0__Data_Char').fill('T');
-  await page.locator('#RFIAttributes_7__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_7__Value_0__Data_Char').fill('Test 2');
-  await page.locator('#RFIAttributes_8__Value_0__Data_Char').click();
-  await page.locator('#RFIAttributes_8__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_8__Value_0__Data_Char').fill('N');
-  await page.locator('#RFIAttributes_8__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_8__Value_0__Data_Char').fill('New york');
-  await page.locator('#RFIAttributes_8__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_9__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_9__Value_0__Data_Char').fill('N');
-  await page.locator('#RFIAttributes_9__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_9__Value_0__Data_Char').fill('New york');
-  await page.locator('#RFIAttributes_9__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_10__Value_0__Data_Char').fill('10001');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').click();
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').fill('UN');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').fill('');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').fill('U');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').fill('United states of ');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_11__Value_0__Data_Char').fill('United states of america');
-  await page.locator('#RFIAttributes_12__Value_0__Data_Char').click();
-  await page.locator('#RFIAttributes_12__Value_0__Data_Char').fill('12345678901');
-  await page.locator('#RFIAttributes_14__Value_0__Data_Char').click();
-  await page.locator('#RFIAttributes_14__Value_0__Data_Char').fill('nikhil.medhe@firstsource.com');
-  await page.locator('#RFIAttributes_14__Value_0__Data_Char').press('Tab');
-  await page.locator('#RFIAttributes_15__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_15__Value_0__Data_Char').fill('T');
-  await page.locator('#RFIAttributes_15__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_15__Value_0__Data_Char').fill('Test ');
-  await page.locator('#RFIAttributes_15__Value_0__Data_Char').press('CapsLock');
-  await page.locator('#RFIAttributes_15__Value_0__Data_Char').fill('Test QA');
-  await page.getByRole('row', { name: 'Send Copy to Self' }).getByRole('checkbox').check();
-  await page.getByRole('row', { name: 'Remember my Information' }).getByRole('checkbox').check();
-  await page.getByText('<p><></p>').click();
-  await page.getByText('<p><></p>').press('CapsLock');
-  await page.getByText('<p><></p>').fill('Test');
-  await page.getByRole('button', { name: 'Submit' }).nth(1).click();
-  await page.getByRole('textbox', { name: 'Please complete all required' }).click();
-  await page.getByRole('textbox', { name: 'Please complete all required' }).press('CapsLock');
-  await page.getByRole('textbox', { name: 'Please complete all required' }).fill('N');
-  await page.getByRole('textbox', { name: 'Please complete all required' }).press('CapsLock');
-  await page.getByRole('textbox', { name: 'Please complete all required' }).fill('Nikhil');
-  await page.getByRole('button', { name: 'Submit' }).nth(1).click();
-  await page.getByText('Your message has been').click();
-  await expect(page.getByText('Your message has been')).toBeVisible();
+test.use({
+  ignoreHTTPSErrors: true,
+});
+
+test('PLP: sixth item shows max-5 validation', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const context = await browser.newContext({ viewport: null, ignoreHTTPSErrors: true });
+  const page = await context.newPage();
+  try {
+    const catalog = new PublicCatalogPage(page);
+    await catalog.gotoHome();
+    await catalog.openEngineParts();
+    await catalog.openBrakeSystemViewItemsPlP();
+
+    const ids = await catalog.getPlPSearchSelectionCheckboxIds();
+    expect(ids.length, 'Brake PLP needs ≥6 checkbox rows for max-5 validation').toBeGreaterThanOrEqual(6);
+    const firstFive = ids.slice(0, 5);
+    const sixthId = ids[5];
+
+    await catalog.checkPlPItemIds(firstFive);
+    await page.waitForTimeout(400);
+    await page.locator(`[id="${sixthId}"]`).scrollIntoViewIfNeeded();
+    await page.locator(`[id="${sixthId}"]`).click();
+    await expect(page.getByText(RFI_MAX_ITEMS_MESSAGE)).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator(`[id="${sixthId}"]`)).not.toBeChecked();
+  } finally {
+    await context.close();
+  }
+});
+
+test('Request Information — five items PLP to submit', async ({ page }) => {
+  test.setTimeout(180_000);
+  const catalog = new PublicCatalogPage(page);
+  await catalog.gotoHome();
+  await catalog.openEngineParts();
+  await catalog.openBrakeSystemViewItemsPlP();
+
+  const ids = await catalog.getPlPSearchSelectionCheckboxIds();
+  expect(ids.length, 'Brake PLP needs ≥5 rows for RFI').toBeGreaterThanOrEqual(5);
+  const firstFive = ids.slice(0, 5);
+
+  await catalog.checkPlPItemIds(firstFive);
+  await catalog.clickRequestInformation();
+
+  const rfi = new RequestInformationPage(page);
+  await rfi.expectStep1OptionsFiveItems(firstFive);
+  await rfi.nextFromStep1();
+  await rfi.fillAttributesAndSubmit();
+  await rfi.expectSuccessMessage();
 });

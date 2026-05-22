@@ -18,7 +18,8 @@ function loadDotEnv(): void {
     const dotenv = require('dotenv');
     const envPath = path.resolve(process.cwd(), '.env');
     if (existsSync(envPath)) {
-      dotenv.config({ path: envPath });
+      /** Never override URLs already set by `run-tests-by-target.js` (`npm run test:prod` / `test:qam`). */
+      dotenv.config({ path: envPath, override: false });
     }
   } catch {
     // dotenv optional
@@ -41,7 +42,7 @@ const envMap: Record<EnvName, Partial<EnvConfig>> = {
     timeout: Number(process.env.TIMEOUT) || DEFAULT_TIMEOUT,
   },
   prod: {
-    baseURL: process.env.BASE_URL || 'https://tools.catnav.us',
+    baseURL: process.env.BASE_URL || 'https://tools.thomasnet-navigator.com',
     envName: 'prod',
     timeout: Number(process.env.TIMEOUT) || DEFAULT_TIMEOUT,
   },
@@ -54,10 +55,12 @@ const envMap: Record<EnvName, Partial<EnvConfig>> = {
 
 export function getEnvConfig(): EnvConfig {
   const base = envMap[envName] ?? envMap.stage;
+  /** Prefer explicit `ENV` so prod/stage matches CLI targets even if maps merge oddly. */
+  const resolvedEnv = (envName in envMap ? envName : base.envName!) as EnvName;
   return {
     baseURL: process.env.BASE_URL || base.baseURL!,
     apiBaseURL: process.env.API_BASE_URL || base.apiBaseURL,
-    envName: base.envName!,
+    envName: resolvedEnv,
     timeout: Number(process.env.TIMEOUT) || base.timeout || DEFAULT_TIMEOUT,
   };
 }

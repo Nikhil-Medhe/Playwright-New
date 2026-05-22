@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { envConfig } from './config/env';
@@ -27,39 +28,164 @@ function useHeadless(): boolean {
   return process.env.CI === 'true';
 }
 
-/** Maximized Chromium window + full viewport (disable: `PLAYWRIGHT_MAXIMIZE=false`). */
+/**
+ * Headed runs: large outer window + `viewport: null` by default (page fills the window).
+ * Chromium: `--start-maximized`. Firefox/WebKit: outer window sized to primary monitor working area on Windows, else PLAYWRIGHT_WINDOW_* / large fallback (`resolvedMaximizeOuterDimensions`).
+ * Fixed viewport (smaller window): `PLAYWRIGHT_MAXIMIZE=false`.
+ */
 function useStartMaximized(): boolean {
-  return process.env.PLAYWRIGHT_MAXIMIZE !== 'false';
+  const v = process.env.PLAYWRIGHT_MAXIMIZE?.trim().toLowerCase();
+  if (v === 'false' || v === '0' || v === 'no') return false;
+  return true;
 }
 
-/** `viewport: null` is incompatible with `deviceScaleFactor` from `devices['Desktop Chrome']`. */
-function chromiumUseOptions() {
-  const desktop = { ...devices['Desktop Chrome'] } as Record<string, unknown>;
+/** CI=1 worker. Local default 2 (avoids many parallel browsers → fewer newPage/teardown timeouts). Override: PLAYWRIGHT_WORKERS=4 in .env */
+function workerCount(): number {
+  if (process.env.CI) return 1;
+  const raw = process.env.PLAYWRIGHT_WORKERS?.trim();
+  if (raw) {
+    const n = parseInt(raw, 10);
+    if (!Number.isNaN(n) && n >= 1) return n;
+  }
+  return 2;
+}
+
+function isTruthyEnv(name: string): boolean {
+  const v = process.env[name]?.trim().toLowerCase();
+  return v === 'true' || v === '1' || v === 'yes';
+}
+
+/** Optional: block downloadable fonts so headings use system fallback (if chunky font persists in Chrome). */
+function chromiumExtraLaunchArgs(): string[] {
+  const args: string[] = [];
+  if (isTruthyEnv('PLAYWRIGHT_DISABLE_REMOTE_WEB_FONTS')) {
+    args.push('--disable-remote-fonts');
+  }
+  return args;
+}
+
+type ChromiumLikeChannel = 'chrome' | 'msedge';
+type ChromiumLikeDevice = 'Desktop Chrome' | 'Desktop Edge';
+
+/** Chrome / Edge (Chromium): `--start-maximized` + `viewport: null` when enabled. */
+function chromiumLikeUseOptions(device: ChromiumLikeDevice, channel: ChromiumLikeChannel) {
+  const desktop = { ...devices[device] } as Record<string, unknown>;
+  const extra = chromiumExtraLaunchArgs();
   if (useStartMaximized()) {
     delete desktop.deviceScaleFactor;
     return {
+      channel,
       ...desktop,
-      viewport: null as const,
+      viewport: null,
       launchOptions: {
-        slowMo: Number(process.env.SLOW_MO) || 0,
-        args: ['--start-maximized'],
+        slowMo: launchSlowMo(),
+        args: ['--start-maximized', ...extra],
       },
     };
   }
   return {
+    channel,
     ...desktop,
     launchOptions: {
-      slowMo: Number(process.env.SLOW_MO) || 0,
+      slowMo: launchSlowMo(),
+      ...(extra.length ? { args: extra } : {}),
     },
   };
 }
+
+function launchSlowMo(): number {
+  return Number(process.env.SLOW_MO) || 0;
+}
+
+/** Best-effort primary monitor usable area (excludes taskbar). Used so Firefox/WebKit windows match “maximized” size instead of the tiny Desktop *preset* `screen`. */
+function primaryMonitorWorkingAreaPixels(): { width: number; height: number } | null {
+  if (process.platform !== 'win32') return null;
+  try {
+    const cmd =
+      'powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $wa=[System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea; Write-Output $wa.Width; Write-Output $wa.Height"';
+    const lines = execSync(cmd, { encoding: 'utf-8', timeout: 8000, windowsHide: true })
+      .trim()
+      .split(/\r?\n/);
+    const w = parseInt(lines[0] ?? '', 10);
+    const h = parseInt(lines[1] ?? '', 10);
+    if (Number.isFinite(w) && Number.isFinite(h) && w >= 800 && h >= 600) {
+      return { width: w, height: h };
+    }
+  } catch {
+    /* PowerShell blocked or unavailable */
+  }
+  return null;
+}
+
+/**
+ * Firefox/WebKit do not support Chromium's `--start-maximized`. Prefer real monitor working area on Windows, else PLAYWRIGHT_WINDOW_* env, else a large fallback — not the Playwright device preset (often 1920×1080 / too small on big displays).
+ */
+function resolvedMaximizeOuterDimensions(): { width: string; height: string } {
+  const envW = process.env.PLAYWRIGHT_WINDOW_WIDTH?.trim();
+  const envH = process.env.PLAYWRIGHT_WINDOW_HEIGHT?.trim();
+  if (envW && envH && /^\d+$/.test(envW) && /^\d+$/.test(envH)) {
+    return { width: envW, height: envH };
+  }
+  const primary = primaryMonitorWorkingAreaPixels();
+  if (primary) {
+    return { width: String(primary.width), height: String(primary.height) };
+  }
+  /* Generic large desktop if OS probe fails (e.g. Linux CI or locked-down shell). */
+  return { width: '2560', height: '1440' };
+}
+
+function firefoxUseOptions() {
+  const preset = devices['Desktop Firefox'];
+  const desktop = { ...preset } as Record<string, unknown>;
+  const slowMo = launchSlowMo();
+  if (!useStartMaximized()) {
+    return {
+      ...desktop,
+      launchOptions: { slowMo },
+    };
+  }
+  delete desktop.deviceScaleFactor;
+  const { width, height } = resolvedMaximizeOuterDimensions();
+  return {
+    ...desktop,
+    viewport: null,
+    launchOptions: {
+      slowMo,
+      args: ['-width', width, '-height', height],
+    },
+  };
+}
+
+/*
+function webkitUseOptions() {
+  const preset = devices['Desktop Safari'];
+  const desktop = { ...preset } as Record<string, unknown>;
+  const slowMo = launchSlowMo();
+  if (!useStartMaximized()) {
+    return {
+      ...desktop,
+      launchOptions: { slowMo },
+    };
+  }
+  delete desktop.deviceScaleFactor;
+  const { width, height } = resolvedMaximizeOuterDimensions();
+  return {
+    ...desktop,
+    viewport: null,
+    launchOptions: {
+      slowMo,
+      args: ['--maximized', `--size=${width}x${height}`],
+    },
+  };
+}
+*/
 
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: workerCount(),
   outputDir: path.join(process.cwd(), 'test-results', runId),
   reporter: [
     ['html', { outputFolder: path.join(process.cwd(), 'playwright-reports', runId), open: 'never' }],
@@ -76,41 +202,45 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
-  /* Configure projects for major browsers */
+  /*
+   * --- Browsers / projects (edit here later) ---
+   * Marathi quick note: browser list `projects:` खाली; run command वरच्या lines मध्ये.
+   * Run all:  npx playwright test
+   * One browser: npx playwright test --project=chrome | edge | firefox
+   * Browser + email: npm run test:qam:email -- edge   (or BROWSER=firefox npm run test:qam:email)
+   * Install browsers once: npx playwright install chrome msedge firefox
+   *
+   * Add/remove a browser: duplicate or delete a `{ name, use }` block below.
+   * - Chrome / Edge (Chromium): use chromiumLikeUseOptions('Desktop Chrome'|'Desktop Edge', 'chrome'|'msedge').
+   * - Firefox: firefoxUseOptions().
+   * - Bundled Chromium (no Google install): new project with use: { ...devices['Desktop Chrome'], launchOptions: {...} } — no `channel` key (see Playwright “Browsers” doc).
+   * - WebKit: uncomment webkitUseOptions() + project at bottom of this file.
+   * Window size / maximize: useStartMaximized(), resolvedMaximizeOuterDimensions(), chromiumLikeUseOptions, firefoxUseOptions (top of file).
+   * Headed vs headless: useHeadless() + env HEADLESS / PLAYWRIGHT_HEADED (also top).
+   */
   projects: [
     {
-      name: 'chromium',
-      use: chromiumUseOptions(),
+      name: 'chrome',
+      use: chromiumLikeUseOptions('Desktop Chrome', 'chrome'),
     },
-
-    /*{
+    {
+      name: 'edge',
+      use: chromiumLikeUseOptions('Desktop Edge', 'msedge'),
+    },
+    {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: firefoxUseOptions(),
     },
 
-    //{
-      //name: 'webkit',
-      //use: { ...devices['Desktop Safari'] },
-    //},
+    // {
+    //   name: 'webkit',
+    //   use: webkitUseOptions(),
+    // },
 
     /* Test against mobile viewports. */
     // {
     //   name: 'Mobile Chrome',
     //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     // },
   ],
 

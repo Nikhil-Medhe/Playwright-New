@@ -46,8 +46,8 @@
 ## 5. पहिला build चालवा
 
 1. Job page वर **Build Now** क्लिक करा.
-2. **Build History** मधला build number क्लिक करा.
-3. **Console Output** मध्ये logs बघा – checkout → npm ci → playwright install → npm run test चालले पाहिजे.
+2. **Build with Parameters** → **RUN_TARGET** (qam/prod), **BROWSER**, **TEST_SUITE** निवडा.
+3. **Console Output** मध्ये logs बघा – checkout → npm ci → playwright install → `run-tests-by-target.js` → `send-result-email.js` चालले पाहिजे.
 
 ---
 
@@ -61,25 +61,16 @@
 
 ---
 
-## 7. Environment variables (optional)
+## 7. Email (SMTP) — local सारखं
 
-Job मध्ये URL किंवा ENV बदलायचे असल्यास:
+Jenkins mail आता **`scripts/send-result-email.js`** वापरतो (ZIP + QAM/PROD label).
 
-1. Job → **Configure**.
-2. **Pipeline** → **Pipeline** (script) च्या वर **Pipeline** dropdown.
-3. **Environment** किंवा job-level **Environment variables** मध्ये add करा:
-   - `BASE_URL` = `https://nikhil.cn-qam-pub.catnav.us`
-   - `ENV` = `stage`
+Job किंवा agent वर set करा: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_TO`  
+किंवा workspace मध्ये `.env` (commit नाही).
 
-किंवा `Jenkinsfile` मधल्या `environment { }` ब्लॉक मध्ये uncomment करून लिहा:
+तपशील: **`JENKINS_EMAIL_SETUP.md`**
 
-```groovy
-environment {
-  CI = 'true'
-  HEADLESS = 'true'
-  BASE_URL = 'https://nikhil.cn-qam-pub.catnav.us'
-}
-```
+URL / environment: **Build with Parameters → RUN_TARGET** (`qam` | `prod`) — `run-tests-by-target.js` local सारखं.
 
 ---
 
@@ -103,7 +94,8 @@ environment {
 | 2 | Agent वर Node.js (18+) install |
 | 3 | New Item → Pipeline job |
 | 4 | Pipeline from SCM, Git URL, branch, Script Path = `Jenkinsfile` |
-| 5 | Build Now |
-| 6 | Report: `playwright-reports/run-* /index.html` |
+| 5 | Build with Parameters (RUN_TARGET, TEST_SUITE) |
+| 6 | Report: email ZIP + `playwright-reports/run-*/index.html` |
+| 7 | SMTP in job env or agent `.env` (`JENKINS_EMAIL_SETUP.md`) |
 
 Repo मध्ये **Jenkinsfile** आधीच आहे – तो checkout झाला की Jenkins तो वापरून pipeline चालवेल.

@@ -1,6 +1,7 @@
 import { test } from '@playwright/test';
 import { readLastOrderRef } from '../helpers/lastOrderRefArtifact';
 import { OrderManagerPage } from '../pages/OrderManagerPage';
+import { LoginPage } from '../pages/LoginPage';
 
 test.use({
   ignoreHTTPSErrors: true,
@@ -13,20 +14,9 @@ test.use({
 test('Order Manager: login, search by order number, verify row', async ({ page }) => {
   test.setTimeout(120_000);
 
-  await page.goto(
-    'https://tools.cn-qam-stage.catnav.us/loginmanager/login.aspx?ReturnUrl=/CatalogManager/CategoryTree.aspx',
-  );
-  await page.getByRole('textbox', { name: 'Enter company name' }).click();
-  await page.getByRole('textbox', { name: 'Enter company name' }).fill('nikhil');
-  await page.getByRole('textbox', { name: 'Enter company name' }).press('Tab');
-  await page.getByRole('textbox', { name: 'Enter your user name' }).fill('nikhilmedhe');
-  await page.getByRole('textbox', { name: 'Enter your user name' }).press('Tab');
-  await page.getByRole('textbox', { name: 'Enter your password' }).press('CapsLock');
-  await page.getByRole('textbox', { name: 'Enter your password' }).fill('N');
-  await page.getByRole('textbox', { name: 'Enter your password' }).press('CapsLock');
-  await page.getByRole('textbox', { name: 'Enter your password' }).fill('New@nikhil123');
-  await page.locator('#ddlApplication').selectOption('95');
-  await page.getByRole('button', { name: 'Sign In' }).click();
+  const loginPage = new LoginPage(page);
+  await loginPage.goto();
+  await loginPage.loginToOrderManager();
   await page.waitForLoadState('domcontentloaded');
 
   const om = new OrderManagerPage(page);

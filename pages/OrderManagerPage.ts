@@ -1,8 +1,9 @@
 import { Page, expect } from '@playwright/test';
+import { orderManagerHomeUrl } from '../config/urls';
 import { BasePage } from '../core/BasePage';
 
-/** Order Manager list (same tools host as WM; session cookie should carry over). */
-export const ORDER_MANAGER_HOME = 'https://tools.cn-qam-stage.catnav.us/orders/OrderHomePage.aspx';
+/** Order Manager list — follows `BASE_URL` / `ENV` at module load. */
+export const ORDER_MANAGER_HOME = orderManagerHomeUrl();
 
 /** Parse “Your order reference number is … 56” (digits vary). */
 export function parseThankYouOrderRef(text: string): string | null {
@@ -46,7 +47,7 @@ export class OrderManagerPage extends BasePage {
   }
 
   async gotoOrderHome() {
-    await this.goto(ORDER_MANAGER_HOME);
+    await this.goto(orderManagerHomeUrl());
   }
 
   async searchByOrderNumber(orderNo: string) {
@@ -54,7 +55,21 @@ export class OrderManagerPage extends BasePage {
     const box = findRow.getByRole('textbox').first();
     await expect(box).toBeVisible({ timeout: 20_000 });
     await box.fill(orderNo);
-    await this.page.getByRole('button', { name: /^search$/i }).click();
+
+    const orderLink = () => this.page.getByRole('link', { name: orderNo, exact: true }).first();
+    const imageSearch = this.page.locator(
+      'input[type="image"][alt*="Search" i], input[type="image"][title*="Search" i]',
+    );
+
+    await box.press('Enter');
+    await this.page.waitForLoadState('domcontentloaded');
+    if (await orderLink().isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+    try {
+      await imageSearch.first().click({ force: true, timeout: 25_000 });
+    } catch {
+      await this.page.getByRole('button', { name: /^search$/i }).click({ force: true, timeout: 25_000 });
+    }
     await this.page.waitForLoadState('domcontentloaded');
   }
 

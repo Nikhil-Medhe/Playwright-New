@@ -3,25 +3,38 @@ pipeline {
 
   parameters {
     choice(
+      name: 'RUN_TARGET',
+      choices: ['qam', 'prod'],
+      description: 'QAM (cn-qam-stage) or PROD (thomasnet-navigator) — same as local run-tests-by-target.js'
+    )
+    choice(
+      name: 'BROWSER',
+      choices: ['chrome', 'edge', 'firefox'],
+      description: 'Playwright project (--project=)'
+    )
+    choice(
       name: 'TEST_SUITE',
       choices: [
         'OrderSubmission',
-        'cadSiteVersion',
+        'Catalogmanager',
+        'cadSiteVersion1',
         'cadSiteVersion1_OrderManager',
+        'cadSiteVersion',
         'all'
       ],
-      description: 'OrderSubmission / cadSiteVersion / cadSiteVersion1 then orderManager (writes test-results/last-order-ref.txt) / all tests'
+      description: 'Spec(s) to run. cadSiteVersion1_OrderManager = cadSiteVersion1 then orderManager (order ref file).'
     )
   }
 
   options {
-    timeout(time: 30, unit: 'MINUTES')
+    timeout(time: 45, unit: 'MINUTES')
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
 
   environment {
     CI = 'true'
     HEADLESS = 'true'
+    // SMTP + EMAIL_TO: set in Jenkins job env, global env, or agent .env (see JENKINS_EMAIL_SETUP.md)
   }
 
   stages {
@@ -34,8 +47,13 @@ pipeline {
 
     stage('Install') {
       steps {
-        bat 'npm ci'
-        bat 'npx playwright install --with-deps chromium'
+        script {
+          def pwBrowser = 'chromium'
+          if (params.BROWSER == 'edge') pwBrowser = 'msedge'
+          else if (params.BROWSER == 'firefox') pwBrowser = 'firefox'
+          bat 'npm ci'
+          bat "npx playwright install --with-deps ${pwBrowser}"
+        }
       }
     }
 
@@ -50,14 +68,27 @@ pipeline {
     stage('Run tests') {
       steps {
         script {
+          def target = params.RUN_TARGET
+          def projectFlag = "--project=${params.BROWSER}"
+          def runTarget = { String specArgs ->
+            def cmd = "node scripts/run-tests-by-target.js ${target} ${specArgs} ${projectFlag}".trim()
+            def code = bat(script: cmd, returnStatus: true)
+            if (code != 0) error("Playwright failed (exit ${code}): ${cmd}")
+          }
+
           if (params.TEST_SUITE == 'OrderSubmission') {
-            bat 'npm run test:order:no-email'
-          } else if (params.TEST_SUITE == 'cadSiteVersion') {
-            bat 'npx playwright test tests/cadSiteVersion.spec.ts'
+            runTarget('tests/OrderSubmission.spec.ts')
+          } else if (params.TEST_SUITE == 'Catalogmanager') {
+            runTarget('tests/Catalogmanager.spec.ts')
+          } else if (params.TEST_SUITE == 'cadSiteVersion1') {
+            runTarget('tests/cadSiteVersion1.spec.ts')
           } else if (params.TEST_SUITE == 'cadSiteVersion1_OrderManager') {
-            bat 'npm run test:cad1-then-om'
+            runTarget('tests/cadSiteVersion1.spec.ts')
+            runTarget('tests/orderManager.spec.ts')
+          } else if (params.TEST_SUITE == 'cadSiteVersion') {
+            runTarget('tests/cadSiteVersion.spec.ts')
           } else {
-            bat 'npm run test:no-email'
+            runTarget('')
           }
         }
       }
@@ -83,52 +114,21 @@ pipeline {
         if (fileExists('test-results/junit.xml')) {
           junit 'test-results/junit.xml'
         }
-      }
-    }
-    success {
-      script {
-        def recipients = env.EMAIL_RECIPIENTS ?: 'nikhil.medhe@firstsource.com'
-        def summary = getTestSummary()
-        def body = """Playwright – Jenkins
-
-Result: SUCCESS
-Job: ${env.JOB_NAME}
-Build: #${env.BUILD_NUMBER}
-Suite: ${params.TEST_SUITE}
-
-${summary}
-
-Report: download playwright-report.zip from Build Artifacts. Console: ${env.BUILD_URL}console
-"""
-        mail(to: recipients, subject: "[PASS] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
-      }
-    }
-    failure {
-      script {
-        def recipients = env.EMAIL_RECIPIENTS ?: 'nikhil.medhe@firstsource.com'
-        def summary = getTestSummary()
-        def body = """Playwright – Jenkins
-
-Result: FAILED
-Job: ${env.JOB_NAME}
-Build: #${env.BUILD_NUMBER}
-Suite: ${params.TEST_SUITE}
-
-${summary}
-
-Report: download playwright-report.zip from Build Artifacts. Console: ${env.BUILD_URL}console
-"""
-        mail(to: recipients, subject: "[FAIL] Playwright ${env.JOB_NAME} #${env.BUILD_NUMBER} – ${params.TEST_SUITE}", body: body)
+        def emailResult = (currentBuild.currentResult == 'SUCCESS') ? 'pass' : 'fail'
+        def footer = "Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} | Suite: ${params.TEST_SUITE} | ${env.BUILD_URL}console"
+        def mailExit = 0
+        withEnv([
+          "EMAIL_BODY_FOOTER=${footer}",
+          "RUN_TARGET=${params.RUN_TARGET}",
+        ]) {
+          mailExit = bat(script: "node scripts/send-result-email.js ${emailResult}", returnStatus: true)
+        }
+        if (mailExit != 0) {
+          echo 'WARN: send-result-email.js failed. Set SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_TO on the job/agent (or .env on the build agent). Test: npm run email:test'
+        } else {
+          echo "Result email sent (${emailResult}, target=${params.RUN_TARGET})."
+        }
       }
     }
   }
-}
-
-def getTestSummary() {
-  if (!fileExists('test-results/junit.xml')) return 'Test summary: See Playwright Report.'
-  def xml = readFile('test-results/junit.xml')
-  def t = (xml =~ /tests="(\d+)"/); def tests = t.find() ? t.group(1) : '?'
-  def f = (xml =~ /failures="(\d+)"/); def failures = f.find() ? f.group(1) : '?'
-  def passed = (tests ==~ /\d+/ && failures ==~ /\d+/) ? (tests.toInteger() - failures.toInteger()) : '?'
-  return "Tests: ${passed} passed, ${failures} failed (total ${tests})."
 }

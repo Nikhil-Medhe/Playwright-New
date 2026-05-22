@@ -1,14 +1,16 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
+import { PublicCatalogPage } from '../pages/PublicCatalogPage';
 
 test.use({
-  ignoreHTTPSErrors: true
+  ignoreHTTPSErrors: true,
 });
 
-test('test', async ({ page }) => {
-  await page.goto('https://nikhil.cn-qam-pub.catnav.us/');
-  await page.getByRole('link', { name: 'Engine parts' }).click();
-  await page.getByRole('link', { name: 'Brake system' }).click();
-  await page.locator('[id="1070"]').check();
-  await page.locator('[id="1071"]').check();
-  await page.getByRole('button', { name: 'Compare Items' }).click();
+test('Compare items — PLP checkboxes then compare view', async ({ page }) => {
+  test.setTimeout(60_000);
+  const catalog = new PublicCatalogPage(page);
+  await catalog.gotoHome();
+  await catalog.openEngineParts();
+  await catalog.openBrakeSystemViewItemsPlP();
+  await catalog.compareBrakePlPItemsByIds('3269', '3270');
+  await catalog.expectCompareBrakeAndCluchCells();
 });

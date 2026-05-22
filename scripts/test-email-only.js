@@ -1,5 +1,5 @@
 /**
- * फक्त एक मेल पाठवतो — SMTP चेक करण्यासाठी. Run: npm run email:test
+ * Sends a single test email to verify SMTP. Run: npm run email:test
  */
 const { execSync } = require('child_process');
 const path = require('path');

@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { type Page, expect } from '@playwright/test';
 import { BasePage } from '../core/BasePage';
 
 export class WebsiteManagerPage extends BasePage {
@@ -7,31 +7,62 @@ export class WebsiteManagerPage extends BasePage {
   }
 
   /**
-   * Cad Site Version row: focus cell → hover Edit (`ShowTopEditSubMenus('dgViewVersions_ctl09_iBtnEditVersion',true)`)
-   * → Details. Prefer ctl09 grid id from WM; if row order changes, fall back to Edit in the Cad Site Version row.
+   * Cad Site Version → Details (`WebManEditVersion.aspx`).
+   * Select the grid row first (`vrId`), then run `EditVersion()` — same as the Edit flyout “Details” item
+   * (`onMenuItemAction` → `EditVersion`). Clicks on `#menuItem0` / `#menuItemHilite0` alone do not navigate.
    */
   async openCadSiteVersionDetails() {
     const versionCell = this.page.getByRole('cell', { name: 'Cad Site Version', exact: true });
+    await versionCell.scrollIntoViewIfNeeded();
     await versionCell.click();
 
-    const editById = this.page.locator('input#dgViewVersions_ctl09_iBtnEditVersion[type="image"]');
-    const row = this.page.getByRole('row').filter({ has: versionCell });
-    const editInRow = row.locator('input[type="image"][id*="iBtnEditVersion"]').first();
-    const editButton = (await editById.isVisible().catch(() => false)) ? editById : editInRow;
-    await expect(editButton).toBeVisible({ timeout: 15_000 });
-    await editButton.scrollIntoViewIfNeeded();
-    await editButton.hover();
-    await editButton.dispatchEvent('mouseover');
+    await Promise.all([
+      this.page.waitForURL(/WebManEditVersion\.aspx/i, { timeout: 45_000 }),
+      this.page.evaluate(() => {
+        const w = window as Window & { EditVersion?: () => void };
+        if (typeof w.EditVersion !== 'function') {
+          throw new Error('Website Manager: EditVersion() is not available on this page');
+        }
+        w.EditVersion();
+      }),
+    ]);
 
-    const detailsLink = this.page.getByRole('link', { name: 'Details', exact: true });
-    if (await detailsLink.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await detailsLink.click({ force: true });
-      return;
+    await this.page.waitForLoadState('domcontentloaded');
+  }
+
+  /**
+   * Clicks the configured pub-catalog link on WM (opens a new browser tab / window).
+   * @param linkName Exact accessible name of the link (often the pub site URL).
+   */
+  async openPubCatalogInNewTab(linkName: string): Promise<Page> {
+    const popupPromise = this.page.waitForEvent('popup', { timeout: 120_000 });
+    const trimmed = linkName.trim().replace(/\/?$/, '');
+    let host = '';
+    try {
+      host = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`).hostname;
+    } catch {
+      host = trimmed.replace(/^https?:\/\//, '').split('/')[0];
     }
-    /** Hilite layer stays `visibility:hidden` until positioned; click still targets “Details” like manual UI. */
-    const menuHilite = this.page.locator('#menuItemHilite0');
-    await menuHilite.waitFor({ state: 'attached', timeout: 10_000 });
-    await menuHilite.click({ force: true });
+
+    const byRoleExact = this.page.getByRole('link', { name: linkName, exact: true });
+    const byRoleHost = this.page.getByRole('link', { name: new RegExp(host.replace(/\./g, '\\.')) }).first();
+    const byHrefExact = this.page.locator(`a[href="${trimmed}"], a[href="${trimmed}/"]`).first();
+    const byHrefPrefix = this.page.locator(`a[href^="${trimmed}"]`).first();
+    const byHrefHost = this.page.locator(`a[href*="${host}"]`).first();
+
+    const target =
+      (await byRoleExact.isVisible({ timeout: 4000 }).catch(() => false))
+        ? byRoleExact
+        : (await byHrefExact.isVisible({ timeout: 2000 }).catch(() => false))
+          ? byHrefExact
+          : (await byHrefPrefix.isVisible({ timeout: 2000 }).catch(() => false))
+            ? byHrefPrefix
+            : (await byRoleHost.isVisible({ timeout: 4000 }).catch(() => false))
+              ? byRoleHost
+              : byHrefHost;
+
+    await expect(target).toBeVisible({ timeout: 20_000 });
+    await target.click();
+    return await popupPromise;
   }
 }
-

@@ -2,6 +2,7 @@ import { test as base, expect, Page } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 import { getDefaultLoginUser } from '../helpers/dataLoader';
 import { envConfig } from '../config/env';
+import { WM_VERSIONS_PATH } from '../config/urls';
 import type { LoginCreds } from '../helpers/dataLoader';
 
 type Fixtures = {
@@ -27,7 +28,7 @@ export const test = base.extend<Fixtures>({
   },
 
   loggedInWebsiteManagerPage: async ({ page, loginPage }, use) => {
-    await loginPage.goto('/WebSiteManager/WebMainViewVersions.aspx');
+    await loginPage.goto(WM_VERSIONS_PATH);
     const creds = getDefaultLoginUser();
     await loginPage.loginToWebsiteManager(creds);
     await use(page);
