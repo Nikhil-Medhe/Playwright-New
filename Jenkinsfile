@@ -42,7 +42,9 @@ pipeline {
   environment {
     CI = 'true'
     HEADLESS = 'true'
-    // SMTP + EMAIL_TO: set in Jenkins job env, global env, or agent .env (see JENKINS_EMAIL_SETUP.md)
+    // Email: workspace .env (install-jenkins-email-env.ps1) or job env SMTP_* / credential playwright-smtp-gmail
+    SMTP_HOST = 'smtp.gmail.com'
+    SMTP_PORT = '587'
   }
 
   stages {
@@ -136,11 +138,33 @@ pipeline {
         def emailResult = (currentBuild.currentResult == 'SUCCESS') ? 'pass' : 'fail'
         def footer = "Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} | Suite: ${params.TEST_SUITE} | ${env.BUILD_URL}console"
         def mailExit = 0
-        withEnv([
-          "EMAIL_BODY_FOOTER=${footer}",
-          "RUN_TARGET=${params.RUN_TARGET}",
-        ]) {
-          mailExit = bat(script: "node scripts/send-result-email.js ${emailResult}", returnStatus: true)
+        def sendEmail = {
+          withEnv([
+            "EMAIL_BODY_FOOTER=${footer}",
+            "RUN_TARGET=${params.RUN_TARGET}",
+          ]) {
+            mailExit = bat(script: "node scripts/send-result-email.js ${emailResult}", returnStatus: true)
+          }
+        }
+        if (env.SMTP_USER?.trim() && env.SMTP_PASS?.trim()) {
+          sendEmail()
+        } else if (fileExists('.env')) {
+          sendEmail()
+        } else {
+          try {
+            withCredentials([
+              usernamePassword(
+                credentialsId: 'playwright-smtp-gmail',
+                usernameVariable: 'SMTP_USER',
+                passwordVariable: 'SMTP_PASS',
+              ),
+            ]) {
+              sendEmail()
+            }
+          } catch (err) {
+            echo "WARN: No .env, no job SMTP_* env, and credential playwright-smtp-gmail not found."
+            mailExit = 1
+          }
         }
         if (mailExit != 0) {
           echo 'WARN: send-result-email.js failed. Set SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_TO on the job/agent (or .env on the build agent). Test: npm run email:test'
