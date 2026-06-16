@@ -24,9 +24,10 @@ if (runAll) {
   passthrough = passthrough.filter((a) => a !== '--all');
 }
 
-const hasGrep = passthrough.some((a, i) => a === '--grep' || a.startsWith('--grep='));
+const hasGrep = passthrough.some((a) => a === '--grep' || a.startsWith('--grep'));
 if (!hasGrep && !runAll) {
-  passthrough = ['--grep', 'happy path', ...passthrough];
+  // Single argv token — avoids cmd.exe splitting `happy` and `path` on Jenkins/Windows.
+  passthrough = ['--grep=happy path', ...passthrough];
 }
 
 const root = path.resolve(__dirname, '..');

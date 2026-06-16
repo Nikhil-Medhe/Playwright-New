@@ -30,7 +30,7 @@ const flowsByTarget = {
     compare: { spec: 'tests/qam/CompareItem.spec.ts', label: 'Compare Items', tags: ['@pub', '@smoke'] },
     pdf: { spec: 'tests/qam/DownloadPDF.spec.ts', label: 'Download PDF', tags: ['@pub', '@smoke'] },
     email: { spec: 'tests/qam/EmailThisPage-New.spec.ts', label: 'Email This Page', tags: ['@pub'] },
-    keyword: { spec: 'tests/qam/Keyword search.spec.ts', label: 'Keyword Search', tags: ['@pub', '@smoke'] },
+    keyword: { spec: 'tests/qam/keywordSearch.spec.ts', label: 'Keyword Search', tags: ['@pub', '@smoke'] },
     rfi: { spec: 'tests/qam/RequestInformation.spec.ts', label: 'Request Information', tags: ['@pub'] },
     'order-submit': {
       spec: 'tests/qam/OrderSubmission.spec.ts',

@@ -282,7 +282,7 @@ login = QAM only. PCAT → qam/PCATBasicNavigation OR prod/pcatNavigation.'''
 
             'cadSiteVersion1'      : 'tests/qam/cadSiteVersion1.spec.ts',
 
-            'Keyword search'       : 'tests/qam/Keyword search.spec.ts',
+            'Keyword search'       : 'tests/qam/keywordSearch.spec.ts',
 
             'login'                : 'tests/qam/login.spec.ts',
 
