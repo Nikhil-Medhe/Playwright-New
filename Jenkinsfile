@@ -110,6 +110,9 @@ login = QAM only. PCAT → qam/PCATBasicNavigation OR prod/pcatNavigation.'''
 
     SMTP_PORT = '587'
 
+    // Pipeline jobs have no freestyle "Build Environment" — set recipient here (override via Manage Jenkins → System → Global properties).
+    EMAIL_TO = 'nikhil.medhe@firstsource.com'
+
   }
 
 
