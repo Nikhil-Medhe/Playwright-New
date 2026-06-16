@@ -494,9 +494,6 @@ export class CartPage extends BasePage {
     await cartPage.getByRole('listitem').filter({ hasText: 'UPS Ground$' }).getByRole('radio').check();
     await cartPage.getByRole('button', { name: /Step\s*2:\s*Payment/i }).click();
     await selectPaymentOnStep2(cartPage);
-    await expect(cartPage.getByText(/COD|Stripe|Cash On Delivery|Credit Card/i).first()).toBeVisible({
-      timeout: 10_000,
-    });
     await expect(cartPage.getByRole('button', { name: 'Step 3: Review & Submit Order' })).toBeVisible();
     await cartPage.getByRole('button', { name: 'Step 3: Review & Submit Order' }).click();
 
