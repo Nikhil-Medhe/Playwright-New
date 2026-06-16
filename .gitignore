@@ -1,5 +1,6 @@
 .env
 .env.local
+Data/automationqa-credentials.json
 *.local
 
 # Playwright

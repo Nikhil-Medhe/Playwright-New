@@ -15,7 +15,7 @@ const testScript = process.argv[2] || 'test';
 const testCmd = testScript === 'test'
   ? 'node scripts/run-tests-with-id.js'
   : testScript === 'test:order'
-    ? 'npx playwright test tests/OrderSubmission.spec.ts'
+    ? 'node scripts/run-tests-by-target.js qam tests/qam/OrderSubmission.spec.ts'
     : `npm run ${testScript}`;
 
 let exitCode = 1;

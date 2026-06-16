@@ -1,177 +1,503 @@
 pipeline {
+
   agent any
 
+
+
   parameters {
+
     choice(
+
       name: 'RUN_TARGET',
+
       choices: ['qam', 'prod'],
-      description: 'QAM (cn-qam-stage) or PROD (thomasnet-navigator) — same as local run-tests-by-target.js'
+
+      description: '''qam = nikhil QAM pub (tests/qam, tools.cn-qam-stage.catnav.us)
+
+prod = Automationqa PROD (tests/automationqa-prod, automationqa.thomasnet-navigator.com)'''
+
     )
+
     choice(
+
       name: 'BROWSER',
+
       choices: ['chrome', 'edge', 'firefox'],
+
       description: 'Playwright project (--project=)'
+
     )
+
     choice(
-      name: 'TEST_SUITE',
-      choices: [
-        'all',
-        'Catalogmanager',
-        'CompareItem',
-        'DownloadPDF',
-        'EmailThisPage-New',
-        'cadSiteVersion1',
-        'cadSiteVersion1_OrderManager',
-        'Keyword search',
-        'login',
-        'orderManager',
-        'OrderSubmission',
-        'PCATBasicNavigation',
-        'Promotions',
-        'RequestInformation'
-      ],
-      description: 'One spec per run, or all = every tests/*.spec.ts (excludes *-recorded). cadSiteVersion1_OrderManager = cad1 then orderManager.'
+
+      name: 'FLOW_STACK',
+
+      choices: ['none', 'smoke', 'pub', 'commerce', 'tools', 'order', 'order-full', 'happy-all'],
+
+      description: '''Optional happy-path stack (overrides TEST_SUITE when not none).
+
+Uses scripts/run-flow-stack.js — stops on first failure.'''
+
     )
+
+    choice(
+
+      name: 'TEST_SUITE',
+
+      choices: [
+
+        'all',
+
+        'Catalogmanager',
+
+        'CompareItem',
+
+        'DownloadPDF',
+
+        'EmailThisPage-New',
+
+        'cadSiteVersion1',
+
+        'cadSiteVersion1_OrderManager',
+
+        'Keyword search',
+
+        'login',
+
+        'orderManager',
+
+        'OrderSubmission',
+
+        'PCATBasicNavigation',
+
+        'Promotions',
+
+        'RequestInformation'
+
+      ],
+
+      description: '''all = full suite folder for selected RUN_TARGET.
+
+qam: tests/qam/*  |  prod: tests/automationqa-prod/*
+
+cadSiteVersion1 → qam/cadSiteVersion1.spec.ts OR prod/testVersion.spec.ts
+
+login = QAM only. PCAT → qam/PCATBasicNavigation OR prod/pcatNavigation.'''
+
+    )
+
   }
+
+
 
   options {
+
     timeout(time: 90, unit: 'MINUTES')
+
     buildDiscarder(logRotator(numToKeepStr: '10'))
+
   }
 
+
+
   environment {
+
     CI = 'true'
+
     HEADLESS = 'true'
-    // Email: workspace .env (install-jenkins-email-env.ps1) or job env SMTP_* / credential playwright-smtp-gmail
+
     SMTP_HOST = 'smtp.gmail.com'
+
     SMTP_PORT = '587'
+
   }
+
+
 
   stages {
 
+
+
     stage('Checkout') {
+
       steps {
+
         checkout scm
+
       }
+
     }
+
+
 
     stage('Install') {
+
       steps {
+
         script {
+
           def pwBrowser = 'chromium'
+
           if (params.BROWSER == 'edge') pwBrowser = 'msedge'
+
           else if (params.BROWSER == 'firefox') pwBrowser = 'firefox'
+
           bat 'npm ci'
+
           bat "npx playwright install --with-deps ${pwBrowser}"
+
         }
+
       }
+
     }
+
+
+
+    stage('Validate credentials') {
+
+      steps {
+
+        script {
+
+          if (params.RUN_TARGET == 'prod') {
+
+            if (!fileExists('Data/automationqa-credentials.json')) {
+
+              error(
+
+                'PROD build needs Data/automationqa-credentials.json on the Jenkins agent ' +
+
+                '(copy from Data/automationqa-credentials.example.json — do not commit secrets).'
+
+              )
+
+            }
+
+            echo 'PROD credentials: Data/automationqa-credentials.json found.'
+
+          } else {
+
+            if (!fileExists('Data/credentials.json')) {
+
+              error(
+
+                'QAM build needs Data/credentials.json on the Jenkins agent ' +
+
+                '(nikhil login users — do not commit if repo is public).'
+
+              )
+
+            }
+
+            echo 'QAM credentials: Data/credentials.json found.'
+
+          }
+
+        }
+
+      }
+
+    }
+
+
 
     stage('Clean old reports') {
+
       steps {
+
         bat 'if exist playwright-reports rmdir /s /q playwright-reports'
+
         bat 'if exist playwright-report rmdir /s /q playwright-report'
+
         bat 'if exist test-results rmdir /s /q test-results'
+
       }
+
     }
+
+
 
     stage('Run tests') {
+
       steps {
+
         script {
+
           def target = params.RUN_TARGET
+
           def projectFlag = "--project=${params.BROWSER}"
+
+          def suiteFolder = target == 'prod' ? 'tests/automationqa-prod' : 'tests/qam'
+
+          def envLabel = target == 'prod' ? 'Automationqa PROD' : 'QAM'
+
+
+
+          echo "=== Playwright run: ${envLabel} | folder=${suiteFolder} | browser=${params.BROWSER} | suite=${params.TEST_SUITE} ==="
+
+
+
           def runTarget = { String specArgs ->
+
             def cmd = "node scripts/run-tests-by-target.js ${target} ${specArgs} ${projectFlag}".trim()
+
+            echo "Running: ${cmd}"
+
             def code = bat(script: cmd, returnStatus: true)
+
             if (code != 0) error("Playwright failed (exit ${code}): ${cmd}")
+
           }
 
-          def specBySuite = [
-            'Catalogmanager'       : 'tests/Catalogmanager.spec.ts',
-            'CompareItem'          : 'tests/CompareItem.spec.ts',
-            'DownloadPDF'          : 'tests/DownloadPDF.spec.ts',
-            'EmailThisPage-New'    : 'tests/EmailThisPage-New.spec.ts',
-            'cadSiteVersion1'      : 'tests/cadSiteVersion1.spec.ts',
-            'Keyword search'       : 'tests/Keyword search.spec.ts',
-            'login'                : 'tests/login.spec.ts',
-            'orderManager'         : 'tests/orderManager.spec.ts',
-            'OrderSubmission'      : 'tests/OrderSubmission.spec.ts',
-            'PCATBasicNavigation'  : 'tests/PCATBasicNavigation.spec.ts',
-            'Promotions'           : 'tests/Promotions.spec.ts',
-            'RequestInformation'   : 'tests/RequestInformation.spec.ts',
+
+
+          def specBySuiteQam = [
+
+            'Catalogmanager'       : 'tests/qam/Catalogmanager.spec.ts',
+
+            'CompareItem'          : 'tests/qam/CompareItem.spec.ts',
+
+            'DownloadPDF'          : 'tests/qam/DownloadPDF.spec.ts',
+
+            'EmailThisPage-New'    : 'tests/qam/EmailThisPage-New.spec.ts',
+
+            'cadSiteVersion1'      : 'tests/qam/cadSiteVersion1.spec.ts',
+
+            'Keyword search'       : 'tests/qam/Keyword search.spec.ts',
+
+            'login'                : 'tests/qam/login.spec.ts',
+
+            'orderManager'         : 'tests/qam/orderManager.spec.ts',
+
+            'OrderSubmission'      : 'tests/qam/OrderSubmission.spec.ts',
+
+            'PCATBasicNavigation'  : 'tests/qam/PCATBasicNavigation.spec.ts',
+
+            'Promotions'           : 'tests/qam/Promotions.spec.ts',
+
+            'RequestInformation'   : 'tests/qam/RequestInformation.spec.ts',
+
           ]
 
-          if (params.TEST_SUITE == 'all') {
-            runTarget('')
-          } else if (params.TEST_SUITE == 'cadSiteVersion1_OrderManager') {
-            runTarget('tests/cadSiteVersion1.spec.ts')
-            runTarget('tests/orderManager.spec.ts')
-          } else if (specBySuite[params.TEST_SUITE]) {
-            runTarget(specBySuite[params.TEST_SUITE])
-          } else {
-            error("Unknown TEST_SUITE: ${params.TEST_SUITE}")
+
+
+          def specBySuiteProd = [
+
+            'Catalogmanager'       : 'tests/automationqa-prod/catalogManager.spec.ts',
+
+            'CompareItem'          : 'tests/automationqa-prod/compareItem.spec.ts',
+
+            'DownloadPDF'          : 'tests/automationqa-prod/downloadPDF.spec.ts',
+
+            'EmailThisPage-New'    : 'tests/automationqa-prod/emailThisPage.spec.ts',
+
+            'cadSiteVersion1'      : 'tests/automationqa-prod/testVersion.spec.ts',
+
+            'Keyword search'       : 'tests/automationqa-prod/keywordSearch.spec.ts',
+
+            'orderManager'         : 'tests/automationqa-prod/orderManager.spec.ts',
+
+            'OrderSubmission'      : 'tests/automationqa-prod/orderSubmission.spec.ts',
+
+            'PCATBasicNavigation'  : 'tests/automationqa-prod/pcatNavigation.spec.ts',
+
+            'Promotions'           : 'tests/automationqa-prod/promotions.spec.ts',
+
+            'RequestInformation'   : 'tests/automationqa-prod/requestInformation.spec.ts',
+
+          ]
+
+
+
+          def specBySuite = target == 'prod' ? specBySuiteProd : specBySuiteQam
+
+
+
+          if (params.TEST_SUITE == 'login' && target == 'prod') {
+
+            error('TEST_SUITE=login is QAM only. Use RUN_TARGET=qam or pick another suite for PROD.')
+
           }
+
+
+
+          def runStack = { String stackName ->
+
+            def cmd = "node scripts/run-flow-stack.js ${target} ${stackName} ${projectFlag}".trim()
+
+            echo "Running stack: ${cmd}"
+
+            def code = bat(script: cmd, returnStatus: true)
+
+            if (code != 0) error("Flow stack failed (exit ${code}): ${cmd}")
+
+          }
+
+
+
+          if (params.FLOW_STACK != 'none') {
+
+            runStack(params.FLOW_STACK)
+
+          } else if (params.TEST_SUITE == 'all') {
+
+            runTarget(suiteFolder)
+
+          } else if (params.TEST_SUITE == 'cadSiteVersion1_OrderManager') {
+
+            if (target == 'prod') {
+
+              runTarget('tests/automationqa-prod/testVersion.spec.ts')
+
+              runTarget('tests/automationqa-prod/orderManager.spec.ts')
+
+            } else {
+
+              runTarget('tests/qam/cadSiteVersion1.spec.ts')
+
+              runTarget('tests/qam/orderManager.spec.ts')
+
+            }
+
+          } else if (specBySuite[params.TEST_SUITE]) {
+
+            runTarget(specBySuite[params.TEST_SUITE])
+
+          } else {
+
+            error("Unknown TEST_SUITE for ${target}: ${params.TEST_SUITE}")
+
+          }
+
         }
+
       }
+
     }
+
+
 
     stage('Prepare report') {
+
       steps {
+
         bat 'node scripts/copy-report.js'
+
       }
+
     }
 
+
+
   }
+
+
 
   post {
+
     always {
+
       bat 'node scripts/copy-report.js'
+
       bat 'node scripts/zip-report.js'
+
       archiveArtifacts artifacts: 'playwright-report/**/*', allowEmptyArchive: true
+
       archiveArtifacts artifacts: 'playwright-report.zip', allowEmptyArchive: true
+
       archiveArtifacts artifacts: 'playwright-reports/**/*', allowEmptyArchive: true
+
       archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
+
       script {
+
         if (fileExists('test-results/junit.xml')) {
+
           junit 'test-results/junit.xml'
+
         }
+
         def emailResult = (currentBuild.currentResult == 'SUCCESS') ? 'pass' : 'fail'
-        def footer = "Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} | Suite: ${params.TEST_SUITE} | ${env.BUILD_URL}console"
+
+        def targetLabel = params.RUN_TARGET == 'prod' ? 'Automationqa PROD' : 'QAM'
+
+        def footer = "Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} | ${targetLabel} | Suite: ${params.TEST_SUITE} | Stack: ${params.FLOW_STACK} | ${env.BUILD_URL}console"
+
         def mailExit = 0
+
         def sendEmail = {
+
           withEnv([
+
             "EMAIL_BODY_FOOTER=${footer}",
+
             "RUN_TARGET=${params.RUN_TARGET}",
+
           ]) {
+
             mailExit = bat(script: "node scripts/send-result-email.js ${emailResult}", returnStatus: true)
+
           }
+
         }
+
         if (env.SMTP_USER?.trim() && env.SMTP_PASS?.trim()) {
+
           sendEmail()
+
         } else if (fileExists('.env')) {
+
           sendEmail()
+
         } else {
+
           try {
+
             withCredentials([
+
               usernamePassword(
+
                 credentialsId: 'playwright-smtp-gmail',
+
                 usernameVariable: 'SMTP_USER',
+
                 passwordVariable: 'SMTP_PASS',
+
               ),
+
             ]) {
+
               sendEmail()
+
             }
+
           } catch (err) {
+
             echo "WARN: No .env, no job SMTP_* env, and credential playwright-smtp-gmail not found."
+
             mailExit = 1
+
           }
+
         }
+
         if (mailExit != 0) {
+
           echo 'WARN: send-result-email.js failed. Set SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_TO on the job/agent (or .env on the build agent). Test: npm run email:test'
+
         } else {
+
           echo "Result email sent (${emailResult}, target=${params.RUN_TARGET})."
+
         }
+
       }
+
     }
+
   }
+
 }
+
+

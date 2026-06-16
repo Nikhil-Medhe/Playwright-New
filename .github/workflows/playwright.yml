@@ -1,27 +1,61 @@
-name: Playwright Tests
+name: Playwright CI
+
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment target
+        type: choice
+        options: [prod, qam]
+        default: prod
+      stack:
+        description: Flow stack (happy-path)
+        type: choice
+        options: [validate-only, smoke, order, order-full, commerce]
+        default: smoke
+
 jobs:
-  test:
-    timeout-minutes: 60
+  validate:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run validate
+
+  test-prod-smoke:
+    needs: validate
+    if: github.event_name != 'workflow_dispatch' || inputs.stack != 'validate-only'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run flow stack
+        run: |
+          TARGET="${{ github.event_name == 'workflow_dispatch' && inputs.target || 'prod' }}"
+          STACK="${{ github.event_name == 'workflow_dispatch' && inputs.stack || 'smoke' }}"
+          node scripts/run-flow-stack.js "$TARGET" "$STACK" --project=chrome
+        env:
+          CI: true
+          HEADLESS: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/junit.xml
+          retention-days: 14

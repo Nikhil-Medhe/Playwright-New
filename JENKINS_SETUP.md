@@ -13,89 +13,106 @@
 ज्या machine वर tests चालणार (Jenkins server किंवा agent), तिथे:
 
 - [nodejs.org](https://nodejs.org/) वरून **Node.js LTS** (18 किंवा 20) install करा.
-- Path मध्ये `node` आणि `npm` असल्याची खात्री करा. CMD/PowerShell मध्ये:
-  ```bash
-  node -v
-  npm -v
-  ```
+- Path मध्ये `node` आणि `npm` असल्याची खात्री करा:
+
+```bash
+node -v
+npm -v
+```
 
 ---
 
-## 3. नवीन Pipeline job बनवा
+## 3. Credentials on Jenkins agent (जरूरी — commit नाही)
 
-1. Jenkins मध्ये **New Item** क्लिक करा.
-2. **Job name** द्या (उदा. `Playwright-Tests`).
-3. **Pipeline** select करा → **OK**.
+| RUN_TARGET | File | Company |
+|------------|------|---------|
+| **qam** | `Data/credentials.json` | nikhil QAM users |
+| **prod** | `Data/automationqa-credentials.json` | Automationqa (copy from `Data/automationqa-credentials.example.json`) |
+
+**एकदा** Jenkins workspace मध्ये (किंवा repo checkout path वर) हे files ठेवा.  
+`Jenkinsfile` → stage **Validate credentials** build start वर तपासते.
 
 ---
 
-## 4. Job configure करा
+## 4. नवीन Pipeline job बनवा
 
-1. **Configure** मध्ये जा.
-2. **Pipeline** section मध्ये:
-   - **Definition:** **Pipeline script from SCM** select करा.
-   - **SCM:** **Git**.
-   - **Repository URL:** तुमचा repo URL (उदा. `https://github.com/your-org/playwright-ts.git`).
-   - **Credentials** जर private repo असेल तर add करा.
-   - **Branch:** `*/main` किंवा तुमची branch (उदा. `*/master`).
-3. **Script Path:** `Jenkinsfile` (default ठेवा – repo root मधली `Jenkinsfile` वापरली जाईल).
+शिफारस: **दोन jobs** (optional पण clear):
+
+| Job name | Default RUN_TARGET | Default TEST_SUITE |
+|----------|-------------------|-------------------|
+| `Playwright-QAM` | `qam` | `all` |
+| `Playwright-PROD` | `prod` | `all` |
+
+एकच job पण चालेल — **Build with Parameters** वरून `RUN_TARGET` निवडा.
+
+1. Jenkins मध्ये **New Item** → **Pipeline** → **OK**.
+2. **Pipeline script from SCM** → **Git** → repo URL + branch.
+3. **Script Path:** `Jenkinsfile`
 4. **Save**.
 
 ---
 
-## 5. पहिला build चालवा
+## 5. Build with Parameters
 
-1. Job page वर **Build Now** क्लिक करा.
-2. **Build with Parameters** → **RUN_TARGET** (qam/prod), **BROWSER**, **TEST_SUITE** निवडा.
-3. **Console Output** मध्ये logs बघा – checkout → npm ci → playwright install → `run-tests-by-target.js` → `send-result-email.js` चालले पाहिजे.
+| Parameter | QAM | PROD |
+|-----------|-----|------|
+| **RUN_TARGET** | `qam` | `prod` |
+| **BROWSER** | chrome / edge / firefox | same |
+| **TEST_SUITE** | `all` किंवा एक scenario | `all` किंवा एक scenario |
+
+### TEST_SUITE mapping (qam vs prod)
+
+| Dropdown name | QAM spec | PROD spec |
+|---------------|----------|-----------|
+| all | `tests/qam/` | `tests/automationqa-prod/` |
+| cadSiteVersion1 | `cadSiteVersion1.spec.ts` | `testVersion.spec.ts` |
+| cadSiteVersion1_OrderManager | cad1 → orderManager | testVersion → orderManager |
+| PCATBasicNavigation | `PCATBasicNavigation.spec.ts` | `pcatNavigation.spec.ts` |
+| login | `login.spec.ts` | **QAM only** (prod वर error) |
+| OrderSubmission, CompareItem, … | `tests/qam/*` | `tests/automationqa-prod/*` |
+
+Local equivalent:
+
+```bash
+npm run test:qam -- --project=chrome
+npm run test:prod -- --project=chrome
+```
 
 ---
 
 ## 6. Report कसे बघायचे
 
-1. Build पूर्ण झाल्यावर **Build Artifacts** (किंवा **Workspace**) मध्ये जा.
-2. `playwright-reports/run-YYYY-MM-DD_HH-mm-ss/` folder उघडा.
-3. **index.html** download करा आणि browser मध्ये उघडा – HTML report दिसेल.
-
-(जर **Archive the artifacts** plugin असले आणि Jenkinsfile मध्ये `archiveArtifacts` असेल तर Build page वरच **Build Artifacts** लिंक दिसेल.)
+1. Build पूर्ण झाल्यावर **Build Artifacts**.
+2. `playwright-reports/run-YYYY-MM-DD_HH-mm-ss/index.html` — HTML report.
+3. `playwright-report.zip` — email attachment same file.
 
 ---
 
-## 7. Email (SMTP) — local सारखं
+## 7. Email (SMTP)
 
-Jenkins mail आता **`scripts/send-result-email.js`** वापरतो (ZIP + QAM/PROD label).
-
-Job किंवा agent वर set करा: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_TO`  
-किंवा workspace मध्ये `.env` (commit नाही).
+Job किंवा agent वर: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_TO`  
+किंवा workspace `.env` (commit नाही).
 
 तपशील: **`JENKINS_EMAIL_SETUP.md`**
 
-URL / environment: **Build with Parameters → RUN_TARGET** (`qam` | `prod`) — `run-tests-by-target.js` local सारखं.
+Mail subject मध्ये **QAM** किंवा **Automationqa Prod** label येतो (`RUN_TARGET` नुसार).
 
 ---
 
-## 8. Windows agent वर चालवत असाल तर
+## 8. Windows agent
 
-जर build agent **Windows** असेल तर `Jenkinsfile` मधले `sh` steps `bat` ने बदलावे:
-
-- `sh 'npm ci'` → `bat 'npm ci'`
-- `sh 'npx playwright install --with-deps chromium'` → `bat 'npx playwright install --with-deps chromium'`
-- `sh 'npm run test'` → `bat 'npm run test'`
-
-(आवश्यक तर मी तुमच्या repo साठी Windows version देऊ शकतो.)
+`Jenkinsfile` **bat** वापरते (Windows Jenkins agent साठी ready).
 
 ---
 
 ## Summary
 
-| Step | काय करायचे |
-|------|----------------|
-| 1 | Jenkins install |
-| 2 | Agent वर Node.js (18+) install |
-| 3 | New Item → Pipeline job |
-| 4 | Pipeline from SCM, Git URL, branch, Script Path = `Jenkinsfile` |
-| 5 | Build with Parameters (RUN_TARGET, TEST_SUITE) |
-| 6 | Report: email ZIP + `playwright-reports/run-*/index.html` |
-| 7 | SMTP in job env or agent `.env` (`JENKINS_EMAIL_SETUP.md`) |
+| Step | काय |
+|------|-----|
+| 1 | Jenkins + Node.js on agent |
+| 2 | `Data/credentials.json` (QAM) + `Data/automationqa-credentials.json` (PROD) on agent |
+| 3 | Pipeline from SCM → `Jenkinsfile` |
+| 4 | Build with Parameters: **RUN_TARGET** + **TEST_SUITE** + **BROWSER** |
+| 5 | SMTP for result email (`JENKINS_EMAIL_SETUP.md`) |
 
-Repo मध्ये **Jenkinsfile** आधीच आहे – तो checkout झाला की Jenkins तो वापरून pipeline चालवेल.
+Repo मध्ये **Jenkinsfile** आहे — checkout झाला की Jenkins pipeline चालवेल.

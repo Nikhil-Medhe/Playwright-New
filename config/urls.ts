@@ -3,7 +3,7 @@ import { envConfig } from './env';
 /**
  * Public storefront (catalog home / PLP host).
  * - **QAM:** `run-tests-by-target.js qam` sets `PUB_CATALOG_URL=https://nikhil.cn-qam-pub.catnav.us`
- * - **Prod (Thomas):** `prod` / `navigator` set `PUB_CATALOG_URL=https://nikhil.thomasnet-navigator.com`
+ * - **Prod (Automationqa):** `prod` / `automationqa-prod` set `PUB_CATALOG_URL=https://automationqa.thomasnet-navigator.com`
  * - **Thomas staging pub:** `run-tests-by-target.js thomas-stage` sets `PUB_CATALOG_URL=https://nikhil.stage.thomasnet-navigator.com` (PCAT `?pcat=pvtcat`)
  * Override in `.env` when needed. Tests should import this (or `PublicCatalogPage`) instead of hardcoding URLs.
  */

@@ -1,5 +1,5 @@
 import { test as base, expect, Page } from '@playwright/test';
-import { LoginPage } from '../pages/LoginPage';
+import { LoginPage } from '../pages/common/LoginPage';
 import { getDefaultLoginUser } from '../helpers/dataLoader';
 import { envConfig } from '../config/env';
 import { WM_VERSIONS_PATH } from '../config/urls';

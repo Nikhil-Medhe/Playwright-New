@@ -1,12 +1,16 @@
 /**
  * Shared QAM / Prod (and related) URL sets for run-tests-by-target + email labels.
+ *
+ * Active suites:
+ * - `qam` — nikhil QAM pub (tests/qam)
+ * - `prod` — Automationqa on Thomas prod (tests/automationqa-prod)
  */
-const THOMAS_PROD = {
-  RUN_TARGET: 'prod',
+const AUTOMATIONQA_PROD = {
   ENV: 'prod',
   BASE_URL: 'https://tools.thomasnet-navigator.com',
-  PUB_CATALOG_URL: 'https://nikhil.thomasnet-navigator.com',
+  PUB_CATALOG_URL: 'https://automationqa.thomasnet-navigator.com',
   WM_VERSIONS_PATH: '/WebSiteManager/WebManViewVersions.aspx',
+  LOGIN_USERS_FILE: 'Data/automationqa-credentials.json',
 };
 
 const targetMap = {
@@ -16,8 +20,14 @@ const targetMap = {
     BASE_URL: 'https://tools.cn-qam-stage.catnav.us',
     PUB_CATALOG_URL: 'https://nikhil.cn-qam-pub.catnav.us',
   },
-  prod: { ...THOMAS_PROD },
-  navigator: { ...THOMAS_PROD, RUN_TARGET: 'navigator' },
+  prod: {
+    RUN_TARGET: 'prod',
+    ...AUTOMATIONQA_PROD,
+  },
+  navigator: {
+    RUN_TARGET: 'navigator',
+    ...AUTOMATIONQA_PROD,
+  },
   catnav: {
     RUN_TARGET: 'catnav',
     ENV: 'prod',
@@ -42,20 +52,20 @@ function getTargetEnv(target) {
 function resolveEmailEnvironmentLabel(env = process.env) {
   const target = (env.RUN_TARGET || env.PLAYWRIGHT_RUN_TARGET || '').trim().toLowerCase();
   if (target === 'qam') return 'QAM';
-  if (target === 'prod' || target === 'navigator') return 'PROD';
+  if (target === 'prod' || target === 'navigator') return 'Automationqa Prod';
   if (target === 'thomas-stage') return 'Thomas Stage';
-  if (target === 'catnav') return 'CatNav Prod';
 
   const base = (env.BASE_URL || '').toLowerCase();
   const pub = (env.PUB_CATALOG_URL || '').toLowerCase();
 
   if (base.includes('cn-qam-stage')) return 'QAM';
+  if (pub.includes('automationqa.')) return 'Automationqa Prod';
   if (base.includes('thomasnet-navigator.com') && pub.includes('stage.')) return 'Thomas Stage';
-  if (base.includes('thomasnet-navigator.com')) return 'PROD';
+  if (base.includes('thomasnet-navigator.com')) return 'Automationqa Prod';
   if (base.includes('tools.catnav.us')) return 'CatNav Prod';
 
   const envName = (env.ENV || '').toLowerCase();
-  if (envName === 'prod') return 'PROD';
+  if (envName === 'prod') return 'Automationqa Prod';
   if (envName === 'stage' || envName === 'dev') return 'QAM';
 
   return 'Local';

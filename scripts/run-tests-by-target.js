@@ -7,6 +7,7 @@
  *   node scripts/run-tests-by-target.js navigator [playwright args...]  — alias of prod (Thomas)
  *   node scripts/run-tests-by-target.js catnav [playwright args...]      — legacy tools.catnav.us (DNS/VPN must resolve)
  *   node scripts/run-tests-by-target.js thomas-stage [...]               — Thomas staging pub (nikhil.stage… + ?pcat=pvtcat flows)
+ *   node scripts/run-tests-by-target.js prod [...]          — Automationqa on Thomas prod (tests/automationqa-prod)
  */
 const path = require('path');
 const { execSync } = require('child_process');

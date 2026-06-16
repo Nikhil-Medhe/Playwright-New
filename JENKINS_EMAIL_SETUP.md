@@ -60,13 +60,18 @@ Console मध्ये `Email sent successfully` आणि inbox मध्य�
 
 | Parameter | Values |
 |-----------|--------|
-| **RUN_TARGET** | `qam` \| `prod` |
+| **RUN_TARGET** | `qam` → `tests/qam` + nikhil QAM URLs \| `prod` → `tests/automationqa-prod` + Automationqa URLs |
 | **BROWSER** | `chrome` \| `edge` \| `firefox` |
-| **TEST_SUITE** | `OrderSubmission`, `Catalogmanager`, `cadSiteVersion1`, `cadSiteVersion1_OrderManager`, `cadSiteVersion`, `all` |
+| **TEST_SUITE** | `all`, `Catalogmanager`, `CompareItem`, `DownloadPDF`, `EmailThisPage-New`, `cadSiteVersion1`, `cadSiteVersion1_OrderManager`, `Keyword search`, `login` (QAM only), `orderManager`, `OrderSubmission`, `PCATBasicNavigation`, `Promotions`, `RequestInformation` |
 
-**Build with Parameters** → target + suite निवडा → **Build**.
+**Build with Parameters** → `RUN_TARGET` + suite + browser → **Build**.
 
-Tests: `run-tests-by-target.js` (local `npm run test:qam` / `test:prod` सारखं).
+Tests: `node scripts/run-tests-by-target.js <qam|prod> <spec-or-folder>` — local `npm run test:qam` / `npm run test:prod` सारखं.
+
+**Credentials (agent वर, commit नाही):**
+
+- QAM: `Data/credentials.json`
+- PROD: `Data/automationqa-credentials.json`
 
 ---
 
@@ -74,7 +79,7 @@ Tests: `run-tests-by-target.js` (local `npm run test:qam` / `test:prod` सा�
 
 | Item | Source |
 |------|--------|
-| Subject | `[PASS/FAIL] Playwright Automation Result – **QAM/PROD** – timestamp` |
+| Subject | `[PASS/FAIL] Playwright Automation Result – **QAM** or **Automationqa Prod** – timestamp` |
 | Body | Environment label, Tools URL, Pub URL, passed/failed counts |
 | Attachment | `playwright-report.zip` |
 | Footer | Jenkins job #, suite, console link (`EMAIL_BODY_FOOTER`) |
@@ -99,7 +104,8 @@ Email ZIP सोबत, Jenkins **Build Artifacts** मध्येही:
 |---------|-----|
 | `SMTP_USER or SMTP_PASS missing` | Job env किंवा agent `.env` भरा |
 | Email नाही, tests pass | Console: `WARN: send-result-email.js failed` — `npm run email:test` |
-| Prod run पण QAM URL | **RUN_TARGET=prod** parameter निवडा |
+| Prod run पण QAM URL | **RUN_TARGET=prod** निवडा; credentials: `Data/automationqa-credentials.json` |
+| QAM run fails login | **RUN_TARGET=qam** + `Data/credentials.json` on agent |
 | Wrong browser | **BROWSER** parameter + install stage (chromium/msedge/firefox) |
 
 Local email docs: `RUN_TESTS.md` § 6.

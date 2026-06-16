@@ -182,10 +182,23 @@ function webkitUseOptions() {
 
 export default defineConfig({
   testDir: './tests',
+  /** Active suites only — legacy root + recorded + old automationqa/ folder ignored. */
+  testIgnore: [
+    '**/node_modules/**',
+    '**/tests/automationqa/**',
+    '**/*-recorded.spec.ts',
+    '**/tests/automationqa-*.spec.ts',
+    '**/tests/CategoryResults.spec.ts',
+    '**/tests/*.spec.ts',
+  ],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : Number(process.env.PLAYWRIGHT_RETRIES ?? 0) || 0,
   workers: workerCount(),
+  grep: process.env.PLAYWRIGHT_GREP ? new RegExp(process.env.PLAYWRIGHT_GREP) : undefined,
+  grepInvert: process.env.PLAYWRIGHT_GREP_INVERT
+    ? new RegExp(process.env.PLAYWRIGHT_GREP_INVERT)
+    : /@flaky/,
   outputDir: path.join(process.cwd(), 'test-results', runId),
   reporter: [
     ['html', { outputFolder: path.join(process.cwd(), 'playwright-reports', runId), open: 'never' }],
