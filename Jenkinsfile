@@ -154,43 +154,61 @@ login = QAM only. PCAT → qam/PCATBasicNavigation OR prod/pcatNavigation.'''
 
 
 
-    stage('Validate credentials') {
+    stage('Setup credentials') {
 
       steps {
 
         script {
 
-          if (params.RUN_TARGET == 'prod') {
+          bat 'if not exist Data mkdir Data'
 
-            if (!fileExists('Data/automationqa-credentials.json')) {
+          def target = params.RUN_TARGET
 
-              error(
+          def credFile = target == 'prod' ? 'Data/automationqa-credentials.json' : 'Data/credentials.json'
 
-                'PROD build needs Data/automationqa-credentials.json on the Jenkins agent ' +
+          def credId = target == 'prod' ? 'playwright-prod-credentials' : 'playwright-qam-credentials'
 
-                '(copy from Data/automationqa-credentials.example.json — do not commit secrets).'
+          def label = target == 'prod' ? 'Automationqa PROD' : 'QAM'
 
-              )
 
-            }
 
-            echo 'PROD credentials: Data/automationqa-credentials.json found.'
+          if (fileExists(credFile)) {
+
+            echo "${label}: using workspace ${credFile}"
 
           } else {
 
-            if (!fileExists('Data/credentials.json')) {
+            try {
+
+              withCredentials([file(credentialsId: credId, variable: 'PLAYWRIGHT_CREDS_FILE')]) {
+
+                bat "copy /Y \"%PLAYWRIGHT_CREDS_FILE%\" \"${credFile}\""
+
+              }
+
+              echo "${label}: loaded ${credFile} from Jenkins credential id=${credId}"
+
+            } catch (err) {
 
               error(
 
-                'QAM build needs Data/credentials.json on the Jenkins agent ' +
+                "${label} build needs ${credFile}. " +
 
-                '(nikhil login users — do not commit if repo is public).'
+                "Add Jenkins Secret file credential id=${credId} (upload your JSON), " +
+
+                "or copy the file to workspace Data/ on the agent. Do not commit passwords to git."
 
               )
 
             }
 
-            echo 'QAM credentials: Data/credentials.json found.'
+          }
+
+
+
+          if (!fileExists(credFile)) {
+
+            error("Credentials setup failed: ${credFile} still missing.")
 
           }
 

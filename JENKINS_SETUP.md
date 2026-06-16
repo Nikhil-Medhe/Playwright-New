@@ -22,15 +22,43 @@ npm -v
 
 ---
 
-## 3. Credentials on Jenkins agent (जरूरी — commit नाही)
+## 3. Credentials (जरूरी — git मध्ये commit नाही)
 
-| RUN_TARGET | File | Company |
-|------------|------|---------|
-| **qam** | `Data/credentials.json` | nikhil QAM users |
-| **prod** | `Data/automationqa-credentials.json` | Automationqa (copy from `Data/automationqa-credentials.example.json`) |
+Passwords **कधीच git push करू नका**. दोन पैकी एक मार्ग वापरा:
 
-**एकदा** Jenkins workspace मध्ये (किंवा repo checkout path वर) हे files ठेवा.  
-`Jenkinsfile` → stage **Validate credentials** build start वर तपासते.
+### Option A — Jenkins Secret file (recommended)
+
+1. Jenkins → **Manage Jenkins** → **Credentials** → (Global) → **Add Credentials**
+2. Kind: **Secret file**
+3. दोन entries तयार करा:
+
+| Credential ID | Upload file | Used when |
+|---------------|-------------|-----------|
+| `playwright-qam-credentials` | तुझा `credentials.json` (nikhil) | `RUN_TARGET=qam` |
+| `playwright-prod-credentials` | तुझा `automationqa-credentials.json` | `RUN_TARGET=prod` |
+
+4. Build run करा — `Jenkinsfile` stage **Setup credentials** automatic copy करेल `Data/` मध्ये.
+
+JSON format (array):
+
+```json
+[{ "company": "nikhil", "username": "nikhilmedhe", "password": "..." }]
+```
+
+PROD:
+
+```json
+[{ "company": "Automationqa", "username": "Automationqa", "password": "..." }]
+```
+
+### Option B — Manual copy on agent (fallback)
+
+| RUN_TARGET | File on agent |
+|------------|---------------|
+| **qam** | `...\Playwright-TS-Automation\Data\credentials.json` |
+| **prod** | `...\Playwright-TS-Automation\Data\automationqa-credentials.json` |
+
+`Setup credentials` stage आधी workspace मध्ये file असेल तर Jenkins Secret शिवाय ती वापरते.
 
 ---
 
@@ -110,7 +138,7 @@ Mail subject मध्ये **QAM** किंवा **Automationqa Prod** label
 | Step | काय |
 |------|-----|
 | 1 | Jenkins + Node.js on agent |
-| 2 | `Data/credentials.json` (QAM) + `Data/automationqa-credentials.json` (PROD) on agent |
+| 2 | Jenkins Secret file: `playwright-qam-credentials` + `playwright-prod-credentials` (किंवा manual `Data/*.json` on agent) |
 | 3 | Pipeline from SCM → `Jenkinsfile` |
 | 4 | Build with Parameters: **RUN_TARGET** + **TEST_SUITE** + **BROWSER** |
 | 5 | SMTP for result email (`JENKINS_EMAIL_SETUP.md`) |

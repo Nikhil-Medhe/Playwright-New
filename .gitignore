@@ -1,5 +1,6 @@
 .env
 .env.local
+Data/credentials.json
 Data/automationqa-credentials.json
 *.local
 
