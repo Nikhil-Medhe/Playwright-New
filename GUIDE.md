@@ -1,6 +1,6 @@
 # Playwright Framework — Complete Guide (Scratch → Advanced)
 
-> **कोणी विचारलं तर:** हा project **Page Object Model (POM)** वर आधारित Playwright + TypeScript framework आहे. दोन स्वतंत्र suites आहेत — **QAM (nikhil)** आणि **PROD (Automationqa)** — एकाच `pages/common/` वर. Tests, pages, helpers, config आणि scripts वेगळे पण pattern एकच.
+> **Elevator pitch:** This project is a **Page Object Model (POM)** Playwright + TypeScript framework. Two independent suites — **QAM (nikhil)** and **PROD (Automationqa)** — share the same `pages/common/` layer. Tests, pages, helpers, config, and scripts differ by target, but the pattern is the same.
 
 ---
 
@@ -8,13 +8,13 @@
 
 1. [First-time setup (scratch)](#1-first-time-setup-scratch)
 2. [Framework architecture](#2-framework-architecture)
-3. [Folder structure — प्रत्येक folder काय करतो](#3-folder-structure)
-4. [QAM vs PROD — काय वेगळं](#4-qam-vs-prod)
+3. [Folder structure — what each folder does](#3-folder-structure)
+4. [QAM vs PROD — what differs](#4-qam-vs-prod)
 5. [How a test run works (script pipeline)](#5-how-a-test-run-works)
 6. [Run types: individual vs full vs stack](#6-run-types)
 7. [All npm commands (cheat sheet)](#7-all-npm-commands)
 8. [Flow mapping & dependencies](#8-flow-mapping--dependencies)
-9. [Imports — कसं करायचं](#9-imports)
+9. [Imports — how to import](#9-imports)
 10. [Page Objects (POM)](#10-page-objects-pom)
 11. [Helpers & test data](#11-helpers--test-data)
 12. [Tags & filtering](#12-tags--filtering)
@@ -236,7 +236,7 @@ Example: `npm run test:prod:order -- --project=chrome --headed`
 
 ## 6. Run types
 
-### A) Individual flow (एक scenario)
+### A) Individual flow (single scenario)
 
 Happy path only (recommended for daily use):
 
@@ -253,7 +253,7 @@ With **all tests** in that spec (negatives + happy):
 npm run test:prod:order -- --all --project=chrome
 ```
 
-### B) Full suite (सर्व specs, negatives included)
+### B) Full suite (all specs, negatives included)
 
 ```bash
 npm run test:prod -- --project=chrome --workers=1
@@ -361,19 +361,19 @@ npm run test:prod:order -- --project=chrome --headed --workers=1 --debug
 
 ```
 ┌─────────────────────────────────────────┐
-│ STANDALONE — कोणतीही prior run नको      │
+│ STANDALONE — no prior run required      │
 │  compare, pdf, email, keyword, rfi,     │
 │  catalogmanager                         │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│ CHECKOUT — order तयार करतो (optional)   │
+│ CHECKOUT — creates order (optional)     │
 │  order-submit, promotions, pcat, cad1   │
 │  → writes test-results/last-order-ref.txt│
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│ ORDER MANAGER — order number हवा        │
+│ ORDER MANAGER — order number required   │
 │  Priority:                              │
 │   1. ORDER_REF env                      │
 │   2. last-order-ref.txt                 │
@@ -520,7 +520,7 @@ const user = getDefaultLoginUser();
 
 ### `ensureOrderRef.ts`
 
-OM tests साठी order number — self-contained:
+Order number for OM tests — self-contained:
 
 ```typescript
 const orderRef = await ensureOrderRef(page, 'prod');

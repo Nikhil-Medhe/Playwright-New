@@ -1,5 +1,5 @@
 /**
- * Automationqa PROD — Test Version (QAM `cadSiteVersion1.spec.ts` सारखा flow).
+ * Automationqa PROD — Test Version (same flow as QAM `cadSiteVersion1.spec.ts`).
  * WM → Test Version catalog → Engine Parts PLP → Valve Cover Pro 1 → checkout → thank you → OM.
  *
  * Run: npm run test:prod:cad1 -- --project=chrome

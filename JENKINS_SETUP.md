@@ -1,19 +1,19 @@
-# Jenkins वर Playwright tests – step-by-step setup
+# Playwright tests on Jenkins — step-by-step setup
 
-## 1. Jenkins install (जर अजून नसेल)
+## 1. Install Jenkins (if not already installed)
 
-- [jenkins.io](https://www.jenkins.io/download/) वरून Jenkins download करा.
-- Install करा (Windows: MSI/installer; Linux: package manager).
-- Browser मध्ये `http://localhost:8080` उघडा, setup wizard पूर्ण करा.
+- Download Jenkins from [jenkins.io](https://www.jenkins.io/download/).
+- Install it (Windows: MSI/installer; Linux: package manager).
+- Open `http://localhost:8080` in a browser and complete the setup wizard.
 
 ---
 
-## 2. Build agent वर Node.js install करा
+## 2. Install Node.js on the build agent
 
-ज्या machine वर tests चालणार (Jenkins server किंवा agent), तिथे:
+On the machine where tests will run (Jenkins server or agent):
 
-- [nodejs.org](https://nodejs.org/) वरून **Node.js LTS** (18 किंवा 20) install करा.
-- Path मध्ये `node` आणि `npm` असल्याची खात्री करा:
+- Install **Node.js LTS** (18 or 20) from [nodejs.org](https://nodejs.org/).
+- Make sure `node` and `npm` are on the PATH:
 
 ```bash
 node -v
@@ -22,22 +22,22 @@ npm -v
 
 ---
 
-## 3. Credentials (जरूरी — git मध्ये commit नाही)
+## 3. Credentials (required — do not commit to git)
 
-Passwords **कधीच git push करू नका**. दोन पैकी एक मार्ग वापरा:
+**Never push passwords to git.** Use one of these two approaches:
 
 ### Option A — Jenkins Secret file (recommended)
 
 1. Jenkins → **Manage Jenkins** → **Credentials** → (Global) → **Add Credentials**
 2. Kind: **Secret file**
-3. दोन entries तयार करा:
+3. Create two entries:
 
 | Credential ID | Upload file | Used when |
 |---------------|-------------|-----------|
-| `playwright-qam-credentials` | तुझा `credentials.json` (nikhil) | `RUN_TARGET=qam` |
-| `playwright-prod-credentials` | तुझा `automationqa-credentials.json` | `RUN_TARGET=prod` |
+| `playwright-qam-credentials` | your `credentials.json` (nikhil) | `RUN_TARGET=qam` |
+| `playwright-prod-credentials` | your `automationqa-credentials.json` | `RUN_TARGET=prod` |
 
-4. Build run करा — `Jenkinsfile` stage **Setup credentials** automatic copy करेल `Data/` मध्ये.
+4. Run a build — the `Jenkinsfile` **Setup credentials** stage will automatically copy them into `Data/`.
 
 JSON format (array):
 
@@ -58,22 +58,22 @@ PROD:
 | **qam** | `...\Playwright-TS-Automation\Data\credentials.json` |
 | **prod** | `...\Playwright-TS-Automation\Data\automationqa-credentials.json` |
 
-`Setup credentials` stage आधी workspace मध्ये file असेल तर Jenkins Secret शिवाय ती वापरते.
+If the file already exists in the workspace before the **Setup credentials** stage, Jenkins uses it without a Secret.
 
 ---
 
-## 4. नवीन Pipeline job बनवा
+## 4. Create a new Pipeline job
 
-शिफारस: **दोन jobs** (optional पण clear):
+Recommended: **two jobs** (optional but clearer):
 
 | Job name | Default RUN_TARGET | Default TEST_SUITE |
 |----------|-------------------|-------------------|
 | `Playwright-QAM` | `qam` | `all` |
 | `Playwright-PROD` | `prod` | `all` |
 
-एकच job पण चालेल — **Build with Parameters** वरून `RUN_TARGET` निवडा.
+A single job also works — choose `RUN_TARGET` from **Build with Parameters**.
 
-1. Jenkins मध्ये **New Item** → **Pipeline** → **OK**.
+1. In Jenkins: **New Item** → **Pipeline** → **OK**.
 2. **Pipeline script from SCM** → **Git** → repo URL + branch.
 3. **Script Path:** `Jenkinsfile`
 4. **Save**.
@@ -86,7 +86,7 @@ PROD:
 |-----------|-----|------|
 | **RUN_TARGET** | `qam` | `prod` |
 | **BROWSER** | chrome / edge / firefox | same |
-| **TEST_SUITE** | `all` किंवा एक scenario | `all` किंवा एक scenario |
+| **TEST_SUITE** | `all` or a single scenario | `all` or a single scenario |
 
 ### TEST_SUITE mapping (qam vs prod)
 
@@ -96,7 +96,7 @@ PROD:
 | cadSiteVersion1 | `cadSiteVersion1.spec.ts` | `testVersion.spec.ts` |
 | cadSiteVersion1_OrderManager | cad1 → orderManager | testVersion → orderManager |
 | PCATBasicNavigation | `PCATBasicNavigation.spec.ts` | `pcatNavigation.spec.ts` |
-| login | `login.spec.ts` | **QAM only** (prod वर error) |
+| login | `login.spec.ts` | **QAM only** (error on prod) |
 | OrderSubmission, CompareItem, … | `tests/qam/*` | `tests/automationqa-prod/*` |
 
 Local equivalent:
@@ -108,39 +108,39 @@ npm run test:prod -- --project=chrome
 
 ---
 
-## 6. Report कसे बघायचे
+## 6. How to view reports
 
-1. Build पूर्ण झाल्यावर **Build Artifacts**.
+1. After the build completes, open **Build Artifacts**.
 2. `playwright-reports/run-YYYY-MM-DD_HH-mm-ss/index.html` — HTML report.
-3. `playwright-report.zip` — email attachment same file.
+3. `playwright-report.zip` — same file as the email attachment.
 
 ---
 
 ## 7. Email (SMTP)
 
-Job किंवा agent वर: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_TO`  
-किंवा workspace `.env` (commit नाही).
+On the job or agent: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_TO`  
+or a workspace `.env` (do not commit).
 
-तपशील: **`JENKINS_EMAIL_SETUP.md`**
+Details: **`JENKINS_EMAIL_SETUP.md`**
 
-Mail subject मध्ये **QAM** किंवा **Automationqa Prod** label येतो (`RUN_TARGET` नुसार).
+The mail subject includes a **QAM** or **Automationqa Prod** label (based on `RUN_TARGET`).
 
 ---
 
 ## 8. Windows agent
 
-`Jenkinsfile` **bat** वापरते (Windows Jenkins agent साठी ready).
+The `Jenkinsfile` uses **bat** (ready for a Windows Jenkins agent).
 
 ---
 
 ## Summary
 
-| Step | काय |
-|------|-----|
+| Step | What |
+|------|------|
 | 1 | Jenkins + Node.js on agent |
-| 2 | Jenkins Secret file: `playwright-qam-credentials` + `playwright-prod-credentials` (किंवा manual `Data/*.json` on agent) |
+| 2 | Jenkins Secret file: `playwright-qam-credentials` + `playwright-prod-credentials` (or manual `Data/*.json` on agent) |
 | 3 | Pipeline from SCM → `Jenkinsfile` |
 | 4 | Build with Parameters: **RUN_TARGET** + **TEST_SUITE** + **BROWSER** |
 | 5 | SMTP for result email (`JENKINS_EMAIL_SETUP.md`) |
 
-Repo मध्ये **Jenkinsfile** आहे — checkout झाला की Jenkins pipeline चालवेल.
+The repo includes a **Jenkinsfile** — after checkout, Jenkins runs the pipeline.

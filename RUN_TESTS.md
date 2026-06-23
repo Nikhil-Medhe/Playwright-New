@@ -12,7 +12,7 @@ Quick reference for running **one spec** on **QAM** or **Prod**, and where to ch
 | **Prod** (Thomas) | `node scripts/run-tests-by-target.js prod …` | `https://tools.thomasnet-navigator.com` |
 | **Wrong** (defaults to QAM) | `npx playwright test tests/…` only | Uses `.env` / default `ENV=stage` |
 
-Console मध्ये `[target:qam]` किंवा `[target:prod]` आणि `BASE_URL=…` दिसले पाहिजे.
+The console should show `[target:qam]` or `[target:prod]` and `BASE_URL=…`.
 
 ---
 
@@ -32,7 +32,7 @@ node scripts/run-tests-by-target.js qam tests/OrderSubmission.spec.ts --project=
 node scripts/run-tests-by-target.js prod tests/OrderSubmission.spec.ts --project=chrome
 ```
 
-### Extra Playwright flags (same command, end मध्ये)
+### Extra Playwright flags (append to the same command)
 
 ```bash
 node scripts/run-tests-by-target.js prod tests/Catalogmanager.spec.ts --project=chrome --headed
@@ -74,7 +74,7 @@ npm run test:prod:chrome:email -- tests/cadSiteVersion1.spec.ts
 npm run test:cad1prod:chrome:email
 ```
 
-Email पाठ / subject बदलण्यासाठी → [§ 6 Email](#6-email-body-subject-recipients).
+To change email body or subject → [§ 6 Email](#6-email-body-subject-recipients).
 
 ---
 

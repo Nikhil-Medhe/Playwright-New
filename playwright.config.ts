@@ -217,7 +217,7 @@ export default defineConfig({
 
   /*
    * --- Browsers / projects (edit here later) ---
-   * Marathi quick note: browser list `projects:` खाली; run command वरच्या lines मध्ये.
+   * Browser list is under `projects:` below; run commands are in the comment lines above.
    * Run all:  npx playwright test
    * One browser: npx playwright test --project=chrome | edge | firefox
    * Browser + email: npm run test:qam:email -- edge   (or BROWSER=firefox npm run test:qam:email)

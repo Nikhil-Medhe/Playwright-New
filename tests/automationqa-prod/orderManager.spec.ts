@@ -1,5 +1,5 @@
 /**
- * Automationqa PROD — Order Manager (QAM `orderManager.spec.ts` सारखा).
+ * Automationqa PROD — Order Manager (same as QAM `orderManager.spec.ts`).
  * Order #: ORDER_REF env, test-results/last-order-ref.txt, or auto pub checkout (self-contained).
  *
  * Run alone: npm run test:prod:order

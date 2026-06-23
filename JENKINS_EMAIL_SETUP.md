@@ -1,12 +1,12 @@
 # Jenkins Email — same as local (`send-result-email.js`)
 
-Jenkins आता local सारखाच mail पाठवतो: **nodemailer**, **QAM/PROD** label, **playwright-report.zip** attachment, junit summary.
+Jenkins now sends mail the same way as local: **nodemailer**, **QAM/PROD** label, **playwright-report.zip** attachment, junit summary.
 
 ---
 
-## 1. SMTP credentials (जरूरी)
+## 1. SMTP credentials (required)
 
-Local `.env` सारखेच variables Jenkins **job** किंवा **build agent** वर असले पाहिजेत:
+The same variables as local `.env` must be set on the Jenkins **job** or **build agent**:
 
 | Variable | Example |
 |----------|---------|
@@ -17,17 +17,17 @@ Local `.env` सारखेच variables Jenkins **job** किंवा **buil
 | `EMAIL_TO` | `you@company.com` |
 | `EMAIL_CC` | (optional) `a@x.com,b@y.com` |
 
-### Option A — Agent वर `.env` (सोपं, local सारखं)
+### Option A — `.env` on the agent (simple, like local)
 
-Build machine वर repo checkout folder मध्ये `.env` ठेवा (git मध्ये commit **करू नका**):
+Place `.env` in the repo checkout folder on the build machine (do **not** commit to git):
 
 ```
 D:\jenkins\workspace\Playwright-Tests\.env
 ```
 
-`send-result-email.js` तोच file वाचतो.
+`send-result-email.js` reads that file.
 
-### Option B — Jenkins job Environment (शिफारस prod साठी)
+### Option B — Jenkins job Environment (recommended for prod)
 
 **Job → Configure → Build Environment → Use secret text(s) or plain env vars:**
 
@@ -35,24 +35,24 @@ D:\jenkins\workspace\Playwright-Tests\.env
 - `SMTP_PASS` → **Secret text** credential
 - `EMAIL_TO`, optional `EMAIL_CC`
 
-किंवा **Manage Jenkins → System → Global properties** (सर्व jobs साठी).
+Or **Manage Jenkins → System → Global properties** (for all jobs).
 
-### Test (agent वर)
+### Test (on agent)
 
-Workspace मध्ये:
+In the workspace:
 
 ```bash
 npm run email:test
 ```
 
-Console मध्ये `Email sent successfully` आणि inbox मध्ये ZIP तपासा.
+Check the console for `Email sent successfully` and verify the ZIP in your inbox.
 
 ---
 
-## 2. Jenkins System SMTP (optional — आता वापरत नाही)
+## 2. Jenkins System SMTP (optional — not used now)
 
-जुना flow Jenkins `mail()` + **E-mail Notification** plugin वापरत होता.  
-**नवीन `Jenkinsfile`** फक्त `node scripts/send-result-email.js` वापरतो — म्हणून **Jenkins System SMTP configure करणे optional** आहे; mail जातो तेव्हा **`.env` / job env** पाहिजे.
+The old flow used Jenkins `mail()` + the **E-mail Notification** plugin.  
+The **new `Jenkinsfile`** only uses `node scripts/send-result-email.js` — so **configuring Jenkins System SMTP is optional**; mail is sent when **`.env` / job env** is set.
 
 ---
 
@@ -66,16 +66,16 @@ Console मध्ये `Email sent successfully` आणि inbox मध्य�
 
 **Build with Parameters** → `RUN_TARGET` + suite + browser → **Build**.
 
-Tests: `node scripts/run-tests-by-target.js <qam|prod> <spec-or-folder>` — local `npm run test:qam` / `npm run test:prod` सारखं.
+Tests: `node scripts/run-tests-by-target.js <qam|prod> <spec-or-folder>` — same as local `npm run test:qam` / `npm run test:prod`.
 
-**Credentials (agent वर, commit नाही):**
+**Credentials (on agent, do not commit):**
 
 - QAM: `Data/credentials.json`
 - PROD: `Data/automationqa-credentials.json`
 
 ---
 
-## 4. Mail मध्ये काय येतं (local सारखं)
+## 4. What the email contains (same as local)
 
 | Item | Source |
 |------|--------|
@@ -90,7 +90,7 @@ Optional overrides (job env): `EMAIL_SUBJECT_PREFIX`, `EMAIL_BODY_HEADER`, `EMAI
 
 ## 5. Artifacts (Jenkins UI)
 
-Email ZIP सोबत, Jenkins **Build Artifacts** मध्येही:
+Along with the email ZIP, Jenkins **Build Artifacts** also include:
 
 - `playwright-report.zip`
 - `playwright-reports/run-*/`
@@ -102,9 +102,9 @@ Email ZIP सोबत, Jenkins **Build Artifacts** मध्येही:
 
 | Problem | Fix |
 |---------|-----|
-| `SMTP_USER or SMTP_PASS missing` | Job env किंवा agent `.env` भरा |
-| Email नाही, tests pass | Console: `WARN: send-result-email.js failed` — `npm run email:test` |
-| Prod run पण QAM URL | **RUN_TARGET=prod** निवडा; credentials: `Data/automationqa-credentials.json` |
+| `SMTP_USER or SMTP_PASS missing` | Fill in job env or agent `.env` |
+| No email, tests pass | Console: `WARN: send-result-email.js failed` — run `npm run email:test` |
+| Prod run but QAM URL | Select **RUN_TARGET=prod**; credentials: `Data/automationqa-credentials.json` |
 | QAM run fails login | **RUN_TARGET=qam** + `Data/credentials.json` on agent |
 | Wrong browser | **BROWSER** parameter + install stage (chromium/msedge/firefox) |
 
